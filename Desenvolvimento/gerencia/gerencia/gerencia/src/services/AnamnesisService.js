@@ -2,25 +2,32 @@
 import api from "./Api";
 
 const AnamnesisService = {
-  criar: async (anamneseId, dados, report = null) => {
+  // src/services/AnamnesisService.js
+  criar: async (anamneseId, dados, reports = []) => {
     try {
       const formData = new FormData();
-      
-      // Adiciona os dados da anamnese como JSON
-      formData.append("anamnesis", new Blob([JSON.stringify(dados)], {
-        type: "application/json"
-      }));
-      
-      // Adiciona o arquivo do relatório se existir
-      if (report) {
-        formData.append("report", report);
+
+      // Dados da anamnese em JSON
+      formData.append(
+        "anamnesis",
+        new Blob([JSON.stringify(dados)], { type: "application/json" })
+      );
+
+      // Anexa múltiplos arquivos (se houver)
+      if (Array.isArray(reports) && reports.length > 0) {
+        reports.forEach((file) => {
+          formData.append("reports", file); // ⚠️ plural, igual ao backend
+        });
       }
 
-      const response = await api.put(`/anamnesis/${anamneseId}/response`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await api.put(
+        `/anamnesis/${anamneseId}/response`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
       return response.data;
     } catch (error) {
       console.error("Erro ao salvar anamnese:", error);
@@ -67,11 +74,11 @@ const AnamnesisService = {
   atualizar: async (id, dados, report = null) => {
     try {
       const formData = new FormData();
-      
+
       formData.append("anamnesis", new Blob([JSON.stringify(dados)], {
         type: "application/json"
       }));
-      
+
       if (report) {
         formData.append("report", report);
       }
@@ -87,7 +94,7 @@ const AnamnesisService = {
       throw error;
     }
   },
-   buscarPorToken: async (token) => {
+  buscarPorToken: async (token) => {
     try {
       const response = await api.get(`/anamnesis/form/${token}`);
       return response.data;

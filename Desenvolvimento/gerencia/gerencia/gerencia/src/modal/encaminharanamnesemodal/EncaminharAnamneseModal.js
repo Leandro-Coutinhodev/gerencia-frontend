@@ -99,11 +99,16 @@ function EncaminharAnamneseModal({ isOpen, paciente, onClose, onConfirm, sending
           </button>
           <button
             onClick={() => onConfirm(paciente)}
-            className="px-5 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
             disabled={sending}
+            className={`px-5 py-2.5 rounded-lg font-medium transition
+    ${sending
+                ? "bg-primary/60 text-white cursor-not-allowed"
+                : "bg-primary text-white hover:bg-primary/90"
+              }`}
           >
             {sending ? "Enviando..." : "Encaminhar anamnese"}
           </button>
+
         </div>
       </div>
     </div>

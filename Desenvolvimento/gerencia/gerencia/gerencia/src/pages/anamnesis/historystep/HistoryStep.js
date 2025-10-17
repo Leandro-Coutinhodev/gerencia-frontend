@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 function HistoryStep({ data, onChange, onPrev, onNext, isReadOnly = false }) {
   const fields = [
     ["developmentHistory", "Gestação - Diagnóstico - Processo de Desenvolvimento - Dias Atuais"],
@@ -9,6 +11,25 @@ function HistoryStep({ data, onChange, onPrev, onNext, isReadOnly = false }) {
     ["therapists", "Equipe de Terapeutas:"],
   ];
 
+  // Estado local para contar caracteres de cada textarea
+  const [counts, setCounts] = useState({});
+
+  useEffect(() => {
+    // Inicializa contagens com base nos dados atuais
+    const initialCounts = {};
+    fields.forEach(([field]) => {
+      initialCounts[field] = (data?.[field] ?? "").length;
+    });
+    setCounts(initialCounts);
+  }, [data]);
+
+  const handleTextareaChange = (field, value) => {
+    if (!isReadOnly) {
+      onChange(field, value);
+      setCounts((prev) => ({ ...prev, [field]: (value ?? "").length }));
+    }
+  };
+
   return (
     <div>
       {fields.map(([field, label]) => (
@@ -17,8 +38,8 @@ function HistoryStep({ data, onChange, onPrev, onNext, isReadOnly = false }) {
             {label}
           </label>
           <textarea
-            value={data[field] ?? ""}
-            onChange={(e) => !isReadOnly && onChange(field, e.target.value)}
+            value={data?.[field] ?? ""}
+            onChange={(e) => handleTextareaChange(field, e.target.value)}
             readOnly={isReadOnly}
             disabled={isReadOnly}
             className={`w-full p-3 border border-gray-300 rounded-lg ${
@@ -27,7 +48,12 @@ function HistoryStep({ data, onChange, onPrev, onNext, isReadOnly = false }) {
                 : "focus:ring-2 focus:ring-primary focus:outline-none"
             }`}
             rows={3}
+            maxLength={1000}
+            placeholder="Digite aqui..."
           />
+          <div className="text-right text-xs text-gray-400">
+            {(counts[field] ?? 0)}/1000
+          </div>
         </div>
       ))}
 

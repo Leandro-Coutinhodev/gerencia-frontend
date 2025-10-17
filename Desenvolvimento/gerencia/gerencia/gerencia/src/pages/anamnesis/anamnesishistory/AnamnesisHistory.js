@@ -99,7 +99,7 @@ export default function AnamnesisHistory() {
   function isValidDate(d) {
     return d instanceof Date && !isNaN(d.getTime());
   }
-  
+
   useEffect(() => {
     const carregarDados = async () => {
       try {
@@ -207,81 +207,122 @@ export default function AnamnesisHistory() {
           </div>
         </div>
       )}
-      
+
       {/* Main content area with two columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Timeline */}
         <div className="lg:col-span-2">
           <h2 className="font-semibold mb-3">Anamneses Realizadas</h2>
+
           {groupedByDay.length === 0 ? (
             <p className="text-gray-500">Nenhuma anamnese encontrada.</p>
           ) : (
             groupedByDay.map((group) => {
-              const dayLabel = group.day === "unknown" ? "Sem data" : new Date(group.day).toLocaleDateString("pt-BR");
+              const dayLabel =
+                group.day === "unknown"
+                  ? "Sem data"
+                  : new Date(group.day).toLocaleDateString("pt-BR");
+
               return (
-                <div key={group.day} className="mb-8">
-                  <div className="mb-4">
-                    <span className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-semibold">
+                <div key={group.day} className="mb-10">
+                  {/* Data */}
+                  <div className="mb-4 flex items-center gap-2">
+                    <span className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
                       {dayLabel}
                     </span>
                   </div>
-                  <div className="relative ml-4 pl-6 border-l-2 border-gray-200">
+
+                  {/* Linha do tempo */}
+                  <div className="relative ml-5 pl-6 border-l-4 border-grey-400">
                     {group.items.map((a) => {
                       const dateForDisplay = getDateFromAnamnese(a);
-                      const link = a.link || a.formUrl || a.url || (a.token ? `${window.location.origin}/form-anamnese/${a.token}` : "");
+                      const link =
+                        a.link ||
+                        a.formUrl ||
+                        a.url ||
+                        (a.token
+                          ? `${window.location.origin}/form-anamnese/${a.token}`
+                          : "");
+
                       return (
-                        <div key={a.id} className="mb-6 relative">
-                          <span className="absolute -left-7 top-3 flex items-center justify-center w-7 h-7 bg-blue-500 rounded text-white shadow">
-                            <ClipboardList size={14} />
-                          </span>
-                          <div className="bg-white border border-gray-200 rounded-xl p-4">
-                            <div className="flex justify-between items-start">
-                              <h3 className="font-semibold">Anamnese</h3>
-                              <div>
-                                <span
-                                  className={`px-3 py-1 text-xs rounded-full font-medium ${
-                                    a.status === "Encaminhada" ? "bg-blue-100 text-blue-700"
-                                    : a.status === "Respondido" ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
+                        <div key={a.id} className="mb-8 relative">
+                          {/* Bolinha azul da linha do tempo */}
+                          <span className="absolute -left-7 top-3 flex items-center justify-center w-7 h-7 bg-blue-500 rounded text-white shadow"> <ClipboardList size={14} /> </span>
+
+                          {/* Card da anamnese */}
+                          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                            <div className="flex justify-between items-start mb-3">
+                              <h3 className="font-semibold text-gray-800">Anamnese</h3>
+                              <span
+                                className={`px-3 py-1 text-xs rounded-full font-medium ${a.status === "Encaminhada"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : a.status === "Respondido"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-gray-100 text-gray-500"
                                   }`}
-                                >
-                                  {a.status || "—"}
-                                </span>
-                              </div>
+                              >
+                                {a.status || "—"}
+                              </span>
                             </div>
-                            <p className="text-sm text-gray-500 mt-2">
-                              Data de envio:{" "}
-                              <span className="font-medium">
-                                {dateForDisplay ? dateForDisplay.toLocaleDateString("pt-BR") : "—"}
+
+                            <p className="text-sm text-gray-500">
+                              {a.status === "Respondido"
+                                ? "Data de resposta:"
+                                : "Data de envio:"}{" "}
+                              <span className="font-medium text-gray-700">
+                                {dateForDisplay
+                                  ? dateForDisplay.toLocaleDateString("pt-BR")
+                                  : "—"}
                               </span>
                             </p>
-                            <div className="mt-3 flex flex-col md:flex-row md:items-center gap-3">
-                              <div className="flex-1 min-w-0">
-                                <label className="block text-sm text-gray-500 mb-1">Link do formulário de anamnese</label>
-                                <div className="flex items-center gap-3">
-                                  <code
-                                    className="block truncate text-sm bg-gray-100 px-3 py-1 rounded border border-gray-200 flex-grow"
-                                    title={link}
-                                  >
-                                    {link ? link : "—"}
-                                  </code>
-                                  <button
-                                    onClick={() => copyToClipboard(link, a.id)}
-                                    className="text-primary hover:underline flex items-center gap-1 text-sm flex-shrink-0"
-                                  >
-                                    <CopyIcon size={14} />
-                                    {copiedId === a.id ? "Copiado!" : "Copiar"}
-                                  </button>
+
+                            {/* Link */}
+                            {/* Link */}
+                            <div className="mt-4">
+                              <label className="block text-sm text-gray-500 mb-1">
+                                Link do formulário de anamnese
+                              </label>
+                              <div className="flex items-center gap-3">
+                                <div className="flex-grow">
+                                  <input
+                                    type="text"
+                                    readOnly
+                                    disabled={a.status === "Respondido"}
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm ${a.status === "Respondido"
+                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        : "bg-gray-50 text-gray-700"
+                                      }`}
+                                    value={link || ""}
+                                  />
                                 </div>
-                              </div>
-                              <div className="flex-shrink-0 self-end">
                                 <button
-                                  onClick={() => navigate(`/anamnese/${a.id}`)}
-                                  className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 text-sm"
+                                  onClick={() => copyToClipboard(link, a.id)}
+                                  disabled={a.status === "Respondido"}
+                                  className={`flex items-center gap-1 text-sm ${a.status === "Respondido"
+                                      ? "text-gray-400 cursor-not-allowed"
+                                      : "text-primary hover:text-blue-700"
+                                    }`}
                                 >
-                                  Visualizar Anamnese
+                                  <CopyIcon size={16} />
+                                  {a.status === "Respondido"
+                                    ? "Indisponível"
+                                    : copiedId === a.id
+                                      ? "Copiado!"
+                                      : ""}
                                 </button>
                               </div>
+                            </div>
+
+
+                            {/* Botão de visualizar */}
+                            <div className="mt-5">
+                              <button
+                                onClick={() => navigate(`/anamnese/${a.id}`)}
+                                className="inline-flex items-center gap-2 border border-primary text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-all text-sm font-medium"
+                              >
+                                <ExternalLink size={16} />
+                                Visualizar Anamnese
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -293,6 +334,7 @@ export default function AnamnesisHistory() {
             })
           )}
         </div>
+
 
         {/* Right Column: Details Panel */}
         <div className="lg:col-span-1">

@@ -38,6 +38,10 @@ const routeConfig = [
     {
       path: '/anamnese/:anamneseid',
       element: <AnamnesisForm />
+    },
+    {
+      path: '/anamnese/edit/:anamneseId',
+      element: <AnamnesisForm />
     }]
   },
   {

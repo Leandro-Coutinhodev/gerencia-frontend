@@ -88,9 +88,8 @@ function BuscarPacienteModal({ isOpen, onClose, onSelectPaciente }) {
               return (
                 <li
                   key={paciente.id}
-                  className={`p-3 cursor-pointer transition ${
-                    selecionado ? "bg-blue-50 border-l-4 border-primary" : "hover:bg-gray-50"
-                  }`}
+                  className={`p-3 cursor-pointer transition ${selecionado ? "bg-blue-50 border-l-4 border-primary" : "hover:bg-gray-50"
+                    }`}
                   onClick={() => setPacienteSelecionado(paciente)}
                 >
                   <div className="font-medium text-gray-800">
@@ -125,14 +124,14 @@ function BuscarPacienteModal({ isOpen, onClose, onSelectPaciente }) {
           <button
             disabled={!pacienteSelecionado}
             onClick={() => onSelectPaciente(pacienteSelecionado)}
-            className={`px-5 py-2.5 rounded-full text-sm font-medium transition ${
-              pacienteSelecionado
+            className={`px-5 py-2.5 rounded-full text-sm font-medium transition ${pacienteSelecionado
                 ? "bg-primary text-white hover:bg-primary/90"
                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
-            }`}
+              }`}
           >
             Encaminhar anamnese
           </button>
+
         </div>
       </div>
     </div>

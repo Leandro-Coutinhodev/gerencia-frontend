@@ -4,13 +4,16 @@ import PatientInfoStep from "../patientinfostep/PatientInfoStep";
 import HistoryStep from "../historystep/HistoryStep";
 import ReportStep from "../reportstep/ReportStep";
 import AnamnesisService from "../../../services/AnamnesisService";
+import Alert from "../../../components/alert/Alert";
 
 function AnamnesisForm() {
-  const { token, anamneseid } = useParams(); // 👈 agora suporta /anamnese/:anamneseid
+  const { token, anamneseid, anamneseId } = useParams();
 
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isReadOnly, setIsReadOnly] = useState(false); // 👈 modo visualização
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [alert, setAlert] = useState(null);
+
   const [formData, setFormData] = useState({
     id: "",
     patientId: "",
@@ -35,9 +38,33 @@ function AnamnesisForm() {
     const carregarDados = async () => {
       try {
         if (anamneseid) {
-          // 👇 modo visualização
           setIsReadOnly(true);
           const dados = await AnamnesisService.buscarPorId(anamneseid);
+
+          const diagArray = Array.isArray(dados.diagnoses)
+            ? dados.diagnoses
+            : (dados.diagnoses ?? "")
+              .split(",")
+              .map((d) => d.trim())
+              .filter(Boolean);
+
+          const cleaned = Array.from(new Set(diagArray.map((s) => s.trim()).filter(Boolean)));
+
+          const knownOptions = new Set([
+            "Sem diagnóstico",
+            "Autismo",
+            "TDAH",
+            "Altas Habilidades",
+            "Síndrome de Down",
+            "Obesidade",
+            "Apraxia da Fala",
+            "Dispraxia",
+            "Outro",
+          ]);
+
+          const customCandidates = cleaned.filter((d) => !knownOptions.has(d));
+          const otherDiagValue =
+            dados.otherDiagnosis ?? (customCandidates.length ? customCandidates.at(-1) : "");
 
           setFormData({
             id: dados.id ?? "",
@@ -46,10 +73,8 @@ function AnamnesisForm() {
             interviewDate: dados.interviewDate
               ? dados.interviewDate.substring(0, 10)
               : "",
-            diagnoses: Array.isArray(dados.diagnoses)
-              ? dados.diagnoses
-              : (dados.diagnoses ?? "").split(",").map((d) => d.trim()),
-            otherDiagnosis: dados.otherDiagnosis ?? "",
+            diagnoses: cleaned,
+            otherDiagnosis: otherDiagValue,
             medicationAndAllergies: dados.medicationAndAllergies ?? "",
             indications: dados.indications ?? "",
             objectives: dados.objectives ?? "",
@@ -63,8 +88,13 @@ function AnamnesisForm() {
             report: null,
           });
         } else if (token) {
-          // 👇 modo criação
           const dados = await AnamnesisService.buscarPorToken(token);
+          const diagArray = Array.isArray(dados.diagnoses)
+            ? dados.diagnoses
+            : (dados.diagnoses ?? "")
+              .split(",")
+              .map((d) => d.trim())
+              .filter(Boolean);
           setFormData({
             id: dados.id ?? "",
             patientId: dados.patientId ?? "",
@@ -72,9 +102,57 @@ function AnamnesisForm() {
             interviewDate: dados.interviewDate
               ? dados.interviewDate.substring(0, 10)
               : "",
-            diagnoses: Array.isArray(dados.diagnoses)
-              ? dados.diagnoses
-              : (dados.diagnoses ?? "").split(",").map((d) => d.trim()),
+            diagnoses: Array.from(new Set(diagArray)),
+            otherDiagnosis: dados.otherDiagnosis ?? "",
+            medicationAndAllergies: dados.medicationAndAllergies ?? "",
+            indications: dados.indications ?? "",
+            objectives: dados.objectives ?? "",
+            developmentHistory: dados.developmentHistory ?? "",
+            preferences: dados.preferences ?? "",
+            interferingBehaviors: dados.interferingBehaviors ?? "",
+            qualityOfLife: dados.qualityOfLife ?? "",
+            feeding: dados.feeding ?? "",
+            sleep: dados.sleep ?? "",
+            therapists: dados.therapists ?? "",
+            report: null,
+          });
+        } else if (anamneseId) {
+          const dados = await AnamnesisService.buscarPorId(anamneseId);
+
+          const diagArray = Array.isArray(dados.diagnoses)
+            ? dados.diagnoses
+            : (dados.diagnoses ?? "")
+              .split(",")
+              .map((d) => d.trim())
+              .filter(Boolean);
+
+          const cleaned = Array.from(new Set(diagArray.map((s) => s.trim()).filter(Boolean)));
+
+          const knownOptions = new Set([
+            "Sem diagnóstico",
+            "Autismo",
+            "TDAH",
+            "Altas Habilidades",
+            "Síndrome de Down",
+            "Obesidade",
+            "Apraxia da Fala",
+            "Dispraxia",
+            "Outro",
+          ]);
+
+          const customCandidates = cleaned.filter((d) => !knownOptions.has(d));
+          const otherDiagValue =
+            dados.otherDiagnosis ?? (customCandidates.length ? customCandidates.at(-1) : "");
+
+          setFormData({
+            id: dados.id ?? "",
+            patientId: dados.patientId ?? "",
+            patientName: dados.patientName ?? "",
+            interviewDate: dados.interviewDate
+              ? dados.interviewDate.substring(0, 10)
+              : "",
+            diagnoses: cleaned,
+            otherDiagnosis: otherDiagValue,
             medicationAndAllergies: dados.medicationAndAllergies ?? "",
             indications: dados.indications ?? "",
             objectives: dados.objectives ?? "",
@@ -90,7 +168,10 @@ function AnamnesisForm() {
         }
       } catch (error) {
         console.error(error);
-        alert("Erro ao carregar dados da anamnese.");
+        setAlert({
+          type: "error",
+          message: "Erro ao carregar dados da anamnese.",
+        });
       } finally {
         setLoading(false);
       }
@@ -107,22 +188,54 @@ function AnamnesisForm() {
 
   const handleSubmit = async () => {
     try {
+      const raw = Array.isArray(formData.diagnoses)
+        ? formData.diagnoses
+        : (formData.diagnoses ?? "").split(",").map((d) => d.trim());
+
+      const knownOptions = new Set([
+        "Sem diagnóstico",
+        "Autismo",
+        "TDAH",
+        "Altas Habilidades",
+        "Síndrome de Down",
+        "Obesidade",
+        "Apraxia da Fala",
+        "Dispraxia",
+        "Outro",
+      ]);
+
+      const keptKnown = raw.filter((d) => knownOptions.has(d) && d !== "Outro");
+      const other = (formData.otherDiagnosis ?? "").trim();
+      const finalDiagnoses = other ? [...keptKnown, other] : keptKnown;
+
+      const finalUnique = Array.from(new Set(finalDiagnoses.map((s) => s.trim()).filter(Boolean)));
+
       const dadosParaEnvio = {
         ...formData,
-        diagnoses: Array.isArray(formData.diagnoses)
-          ? formData.diagnoses.join(", ")
-          : (formData.diagnoses ?? ""),
+        diagnoses: finalUnique.join(", "),
       };
 
-      const report = dadosParaEnvio.report ?? null;
+      const reports = Array.isArray(formData.report)
+        ? formData.report
+        : formData.report
+          ? [formData.report]
+          : [];
+
       delete dadosParaEnvio.report;
       delete dadosParaEnvio.patientName;
 
-      await AnamnesisService.criar(formData.id, dadosParaEnvio, report);
-      alert("Anamnese salva com sucesso!");
+      await AnamnesisService.criar(formData.id, dadosParaEnvio, reports);
+
+      setAlert({
+        type: "success",
+        message: "Anamnese salva com sucesso!",
+      });
     } catch (error) {
       console.error(error);
-      alert("Erro ao salvar anamnese");
+      setAlert({
+        type: "error",
+        message: "Erro ao salvar anamnese.",
+      });
     }
   };
 
@@ -132,17 +245,43 @@ function AnamnesisForm() {
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 w-full max-w-4xl mx-auto">
+      {alert && (
+        <Alert
+          type={alert.type}
+          message={alert.message}
+          onClose={() => setAlert(null)}
+          duration={4000}
+        />
+      )}
+
+      {(anamneseId) && (
+        <h2 className="text-2xl font-semibold mb-4">
+          Atualizar Anamnese
+        </h2>
+
+      )}
+      {(anamneseid) && (
+        <h2 className="text-2xl font-semibold mb-4">
+          Visualizar Anamnese
+        </h2>
+
+      )}
+      {(token) && (
+        <h2 className="text-2xl font-semibold mb-4 text-center">
+          Cadastrar Anamnese
+        </h2>
+
+      )}
+
       <div className="flex border-b">
         {["Informações do paciente", "Histórico", "Laudo"].map((label, index) => (
           <button
             key={label}
-            disabled={isReadOnly}
-            className={`px-4 py-3 text-sm font-medium transition-colors ${
-              step === index
+            className={`px-4 py-3 text-sm font-medium transition-colors ${step === index
                 ? "border-b-2 border-primary text-primary"
                 : "text-gray-500 hover:text-primary"
-            } ${isReadOnly ? "cursor-default opacity-60" : ""}`}
-            onClick={() => !isReadOnly && setStep(index)}
+              }`}
+            onClick={() => setStep(index)}
           >
             {label}
           </button>

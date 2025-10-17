@@ -44,14 +44,17 @@ function Alert({ type = "info", message, onClose, duration = 4000 }) {
   if (!visible) return null;
 
   return (
+  <div className="w-full flex justify-center">
     <div
-      className={`flex items-center gap-2 px-3 py-2 mb-4 ${style.bg} ${style.border} ${style.text} rounded-[4px]`}
-      style={{ width: "442px", height: "48px" }}
+      className={`flex items-center gap-2 px-4 py-2 mb-4 ${style.bg} ${style.border} ${style.text} rounded-[4px] shadow-sm`}
+      style={{ maxWidth: "442px", width: "100%" }}
     >
       {style.icon}
       <span className="text-sm font-medium truncate">{message}</span>
     </div>
-  );
+  </div>
+);
+
 }
 
 export default Alert;
