@@ -1,0 +1,49 @@
+.container {
+  margin-top: 2rem;
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+h2 {
+  color: #003366;
+  margin-bottom: 1rem;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabela th,
+.tabela td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tabela th {
+  background-color: #f0f8ff;
+  color: #003366;
+  font-weight: 600;
+}
+
+.foto {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ccc;
+}
+.botao_excluir {
+  margin-left: auto;
+  padding: 8px 16px;
+  background-color: #ff4d4d;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
