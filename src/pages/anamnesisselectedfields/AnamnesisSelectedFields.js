@@ -1,8 +1,32 @@
+// src/pages/anamnesis/AnamnesisSelectFields.js
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AnamnesisService from "../../services/AnamnesisService";
 import Alert from "../../components/alert/Alert";
-function AnamnesisSelectFields() {
+import { ArrowLeft, ExternalLink } from "lucide-react";
+
+// Avatar ilustrativo (aumentado)
+const UserAvatar = ({ size = "w-20 h-20" }) => (
+  <svg
+    className={`${size}`}
+    viewBox="0 0 64 64"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle cx="32" cy="32" r="32" fill="#E0E0E0" />
+    <path
+      d="M32 37C36.4183 37 40 33.4183 40 29C40 24.5817 36.4183 21 32 21C27.5817 21 24 24.5817 24 29C24 33.4183 27.5817 37 32 37Z"
+      fill="#BDBDBD"
+    />
+    <path
+      d="M44 48C44 41.9249 39.0751 37 33 37C26.9249 37 22 41.9249 22 48H44Z"
+      fill="#BDBDBD"
+    />
+  </svg>
+);
+
+
+export default function AnamnesisSelectFields() {
   const { anamneseid, token } = useParams();
   const navigate = useNavigate();
 
@@ -29,7 +53,6 @@ function AnamnesisSelectFields() {
     { key: "therapists", label: "Equipe de terapeutas" },
   ];
 
-  // Carrega dados da anamnese
   useEffect(() => {
     const carregarDados = async () => {
       try {
@@ -90,7 +113,7 @@ function AnamnesisSelectFields() {
         type: "success",
         message: "Campos selecionados salvos com sucesso!",
       });
-      setTimeout(() => navigate(-1), 1500);
+      setTimeout(() => navigate(-1), 2500);
     } catch (error) {
       console.error(error);
       setAlert({
@@ -105,116 +128,171 @@ function AnamnesisSelectFields() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 w-full max-w-4xl mx-auto">
-      {alert && (
-        <Alert
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert(null)}
-          duration={4000}
-        />
-      )}
-
-      <h2 className="text-2xl font-semibold mb-6">Selecionar campos da Anamnese</h2>
-
-      {/* Cabeçalho do paciente */}
-      <div className="flex items-center gap-4 border-b pb-4 mb-4">
-        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xl">
-          👤
-        </div>
-        <div>
-          <p className="font-medium text-gray-900">
-            {formData.patientName ?? "Paciente não identificado"}
-          </p>
-          {formData.interviewDate && (
-            <p className="text-sm text-gray-500">
-              Entrevista realizada em{" "}
-              {new Date(formData.interviewDate).toLocaleDateString("pt-BR")}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Abas */}
-      <div className="flex border-b mb-4">
-        {["Informações do Paciente", "Histórico de Desenvolvimento"].map(
-          (label, index) => (
-            <button
-              key={label}
-              className={`px-4 py-3 text-sm font-medium transition-colors ${
-                step === index
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-gray-500 hover:text-primary"
-              }`}
-              onClick={() => setStep(index)}
-            >
-              {label}
-            </button>
-          )
-        )}
-      </div>
-
-      {/* Selecionar todas */}
-      <div className="flex items-center mb-4">
-        <input
-          type="checkbox"
-          checked={allSelected}
-          onChange={(e) => handleSelectAll(e.target.checked)}
-          className="h-4 w-4 text-primary border-gray-300 rounded"
-        />
-        <label className="ml-2 text-sm font-medium text-gray-700">
-          Selecionar todas as respostas
-        </label>
-      </div>
-
-      {/* Campos */}
-      <div className="space-y-4">
-        {allFields.map(({ key, label }) => (
-          <div
-            key={key}
-            className="border border-gray-200 rounded-xl p-4 bg-gray-50"
+    <div className="min-h-screen bg-[#F8F9FA] p-4 sm:p-6 lg:p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Topo: Voltar */}
+        <div className="flex items-center mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
           >
-            <div className="flex items-start">
-              <input
-                type="checkbox"
-                checked={selectedFields.includes(key)}
-                onChange={() => toggleField(key)}
-                className="h-4 w-4 text-primary mt-1 border-gray-300 rounded"
+            <ArrowLeft size={20} /> Voltar
+          </button>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 sm:p-8">
+          {alert && (
+            <div className="mb-4">
+              <Alert
+                type={alert.type}
+                message={alert.message}
+                onClose={() => setAlert(null)}
+                duration={6000} // 6 segundos
               />
-              <div className="ml-3">
-                <p className="font-medium text-gray-800">{label}</p>
-                <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">
-                  {formData[key] ?? "Sem resposta registrada."}
-                </p>
-              </div>
+            </div>
+          )}
+
+
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">
+            Analisar anamnese
+          </h1>
+
+          {/* Header Paciente */}
+          <div className="flex items-center gap-4 pb-6 border-b border-gray-200">
+            <UserAvatar size="w-24 h-24" />
+            <div className="flex-1">
+              <p className="text-base font-bold text-gray-900">
+                {formData.patientName ?? "Paciente não identificado"}
+              </p>
+              {formData.interviewDate && (
+                <>
+                  <p className="text-sm text-gray-500 mb-1">
+                    Entrevista: realizada em{" "}
+                    {new Date(formData.interviewDate).toLocaleDateString(
+                      "pt-BR",
+                      { timeZone: "UTC" }
+                    )}
+                  </p>
+                  <a
+                    href="#"
+                    className="text-sm font-medium text-sky-600 hover:underline flex items-center gap-1.5"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open(`/laudo/${formData.id}`, "_blank");
+                    }}
+                  >
+                    Visualizar laudo <ExternalLink size={16} />
+                  </a>
+                </>
+              )}
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Ações */}
-      <div className="flex justify-between mt-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50"
-        >
-          Cancelar
-        </button>
+          <h2 className="text-base text-gray-800 font-medium my-6">
+            Selecione as respostas da anamnese
+          </h2>
 
-        <button
-          disabled={selectedFields.length === 0}
-          onClick={handleSaveSelection}
-          className={`px-6 py-2 rounded-lg text-white transition ${
-            selectedFields.length === 0
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-primary hover:bg-primary/90"
-          }`}
-        >
-          Salvar seleção
-        </button>
+          {/* Tabs */}
+          <div className="border-b border-gray-200 mb-6">
+            <div className="flex gap-8">
+              {["Informações do paciente", "Histórico de Desenvolvimento"].map(
+                (label, index) => (
+                  <button
+                    key={label}
+                    onClick={() => setStep(index)}
+                    className={`pb-3 text-base font-medium transition-colors duration-200 ${step === index
+                      ? "text-sky-600 border-b-2 border-sky-600"
+                      : "text-gray-500 hover:text-gray-800 border-b-2 border-transparent"
+                      }`}
+                  >
+                    {label}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+
+          {/* Select all */}
+          <div className="flex items-center mb-4">
+            <input
+              id="selectAll"
+              type="checkbox"
+              checked={allSelected}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+              className="h-4 w-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500"
+            />
+            <label
+              htmlFor="selectAll"
+              className="ml-3 text-sm font-medium text-gray-700"
+            >
+              Selecionar todas as respostas
+            </label>
+          </div>
+
+          {/* Campos */}
+          <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
+            {allFields.map(({ key, label }) => {
+              const isSelected = selectedFields.includes(key);
+              const value = formData[key];
+
+              return (
+                <div
+                  key={key}
+                  className={`transition-colors duration-200 ${isSelected ? "bg-sky-50" : "bg-white"
+                    }`}
+                >
+                  <div
+                    className={`flex items-start gap-4 p-4 border-l-4 ${isSelected ? "border-sky-600" : "border-transparent"
+                      }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleField(key)}
+                      className="h-4 w-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500 mt-1 cursor-pointer"
+                    />
+                    <div
+                      className="flex-1 cursor-pointer"
+                      onClick={() => toggleField(key)}
+                    >
+                      <p className="text-base font-semibold text-gray-900 mb-2">
+                        {label}
+                      </p>
+                      <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                        {value && value.trim() !== ""
+                          ? value
+                          : "Sem resposta registrada."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Ações */}
+          {/* Ações */}
+          <div className="flex justify-end items-center mt-8 gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              disabled={selectedFields.length === 0}
+              onClick={handleSaveSelection}
+              className={`px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors duration-200 ${selectedFields.length === 0
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-sky-600 hover:bg-sky-700"
+                }`}
+            >
+              {step === 0 ? "Continuar" : "Salvar"}
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
   );
 }
-
-export default AnamnesisSelectFields;

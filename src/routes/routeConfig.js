@@ -50,7 +50,7 @@ const routeConfig = [
       element: <AnamnesisList2 />
     },
     {
-      path: '/paciente/encaminhar/:anamneseid',
+      path: '/paciente/selecionar/:anamneseid',
       element: <AnamnesisSelectFields />
     }]
   },

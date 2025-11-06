@@ -121,7 +121,25 @@ assignAssistantToReferral: async (referralId, assistantId) => {
       assistantId: assistantId
     });
   
-}
+},
+async getReferralByAnamnesis(anamnesisId) {
+  const response = await api.get(`/anamnesis/${anamnesisId}/referral`);
+  return response.data;
+},
+async assignAssistant(referralId, assistantId) {
+  return api.put(`/anamnesis/referral/${referralId}/assign-assistant`, {
+    assistantId,
+  });
+},
+listarReferral: async () => {
+    try {
+      const response = await api.get("/anamnesis/referral/findall");
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao listar todas as anamneses:", error);
+      throw error;
+    }
+  }
 };
 
 export default AnamnesisService;

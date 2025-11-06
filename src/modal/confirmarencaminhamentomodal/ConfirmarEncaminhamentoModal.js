@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AssistantService from "../../services/AssistantService";
+import AnamnesisService from "../../services/AnamnesisService";
 
 export default function ConfirmarEncaminhamentoModal({
   isOpen,
@@ -19,16 +20,31 @@ export default function ConfirmarEncaminhamentoModal({
     }
   }, [isOpen]);
 
-  const handleConfirm = () => {
-    if (!selectedAssistant) {
-      alert("Selecione um assistente antes de confirmar!");
+  const handleConfirm = async () => {
+  if (!selectedAssistant) {
+    alert("Selecione um assistente antes de confirmar!");
+    return;
+  }
+
+  try {
+    // Busca o referral vinculado à anamnese
+    const referral = await AnamnesisService.getReferralByAnamnesis(anamnese.id);
+    
+
+    if (!referral || !referral.id) {
+      alert("Nenhum encaminhamento encontrado para esta anamnese.");
       return;
     }
-    onConfirm({
-      anamnesisId: anamnese?.id,
-      receiverId: selectedAssistant,
-    });
-  };
+
+    await AnamnesisService.assignAssistant(referral.id, selectedAssistant);
+
+    onConfirm(); // notifica o componente pai (lista) para atualizar UI
+  } catch (error) {
+    console.error("Erro ao vincular assistente:", error);
+    alert("Erro ao vincular assistente à anamnese.");
+  }
+};
+
 
   if (!isOpen) return null;
 
