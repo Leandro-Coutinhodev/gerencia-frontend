@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown } from "lucide-react";
+import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 
@@ -126,7 +126,7 @@ function Dashboard() {
                             className={`flex items-center p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${activeMenu === 'birthdays' ? 'bg-blue-50 text-blue-600' : ''}`}
                             onClick={() => setActiveMenu('birthdays')}
                         >
-                            Encaminhar paciente
+                           <Send className="mr-3" size={18} /> Encaminhar paciente
                         </Link>
                     )}
                 </nav>

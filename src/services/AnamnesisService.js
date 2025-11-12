@@ -139,6 +139,10 @@ listarReferral: async () => {
       console.error("Erro ao listar todas as anamneses:", error);
       throw error;
     }
+  },
+  listarHistorico: async (patientId) => {
+    const response = await api.get(`/anamnesis/referral/${patientId}`);
+    return response.data;
   }
 };
 

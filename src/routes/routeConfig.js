@@ -11,6 +11,7 @@ import AnamnesisHistory from "../pages/anamnesis/anamnesishistory/AnamnesisHisto
 import AnamnesisForm from "../pages/anamnesis/anamnesisform/AnamnesisForm";
 import AnamnesisList2 from "../pages/anamnesis/anamnesislist/AnamnesisList2";
 import AnamnesisSelectFields from "../pages/anamnesisselectedfields/AnamnesisSelectedFields";
+import AnamnesisReferralHistory from "../pages/anamnesis/anamnesisreferralhistory/AnamnesisReferralHistory";
 
 
 const routeConfig = [
@@ -52,6 +53,10 @@ const routeConfig = [
     {
       path: '/paciente/selecionar/:anamneseid',
       element: <AnamnesisSelectFields />
+    },
+    {
+      path: '/paciente/encaminhar/historico/:patientId',
+      element: <AnamnesisReferralHistory />
     }]
   },
   {

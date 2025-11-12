@@ -145,7 +145,7 @@ export default function AnamnesisList2() {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <table className="min-w-full text-sm text-gray-700">
           <thead>
-            <tr className="border-b bg-gray-50 text-gray-600">
+            <tr className="border-b bg-gray-50 text-gray-600 text-primary">
               {activeTab === "anamneses" ? (
                 <>
                   <th className="py-3 px-4 text-left font-medium">Nome</th>
@@ -242,12 +242,16 @@ export default function AnamnesisList2() {
                   <td className="py-3 px-4">{item.guardianName || "-"}</td>
                   <td className="py-3 px-4">{item.assistantName || "-"}</td>
                   <td className="py-3 px-4 text-center">
-                    <button
-                      className="text-blue-600 hover:text-blue-800"
-                      title="Ver detalhes"
-                    >
-                      <Eye size={18} />
-                    </button>
+                    <div className="flex justify-center gap-3">
+                          <button
+                            className="text-primary hover:text-primary/70 transition"
+                            title="Visualizar histórico"
+                            onClick={() => navigate(`/paciente/encaminhar/historico/${item.patientId}`)}
+                          >
+                            <Eye size={18} />
+                          </button>
+
+                        </div>
                   </td>
                 </tr>
               )
