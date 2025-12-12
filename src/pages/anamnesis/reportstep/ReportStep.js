@@ -30,7 +30,7 @@ function ReportStep({ data, onChange, onPrev, onSubmit, isReadOnly = false }) {
 
   const openReport = () => {
     if (!anamnesisId) return;
-    const url = `http://localhost:8080/api-gateway/gerencia/anamnesis/${anamnesisId}/report`;
+    const url = `http://72.62.12.212:8080/api-gateway/gerencia/anamnesis/${anamnesisId}/report`;
     window.open(url, "_blank");
   };
 

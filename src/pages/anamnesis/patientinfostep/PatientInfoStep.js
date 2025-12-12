@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 
 function PatientInfoStep({ data, onChange, onNext, isReadOnly = false }) {
   const diagnosesOptions = [
@@ -21,11 +21,11 @@ function PatientInfoStep({ data, onChange, onNext, isReadOnly = false }) {
     objectives: (data?.objectives ?? "").length,
   });
 
-  // otherDiagnosis contém apenas o texto custom (sem ser "Outro")
   const [otherDiagnosis, setOtherDiagnosis] = useState(data?.otherDiagnosis ?? "");
+  const [initialized, setInitialized] = useState(false);
 
-  // Normaliza o campo diagnoses (string "A, B" ou array) -> array limpa, sem duplicatas
-  const getDiagnoses = () => {
+  // Normaliza o campo diagnoses
+  const getDiagnoses = useCallback(() => {
     const raw = data?.diagnoses ?? [];
     let arr = [];
     if (Array.isArray(raw)) arr = raw;
@@ -34,32 +34,28 @@ function PatientInfoStep({ data, onChange, onNext, isReadOnly = false }) {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-    // normaliza: trim, remove vazios e duplicates
     return Array.from(
       new Set(arr.map((s) => (typeof s === "string" ? s.trim() : s)).filter(Boolean))
     );
-  };
+  }, [data?.diagnoses]);
 
-  // Se backend trouxe um custom em otherDiagnosis, usa ele; senão tenta extrair de diagnoses
+  // ✅ CORRIGIDO: Inicialização sem causar loop
   useEffect(() => {
-    // extrair quaisquer valores custom presentes em diagnoses
-    const diag = getDiagnoses();
-    const custom = diag.find((d) => !knownSet.has(d) && d.trim() !== "");
-    if (data?.otherDiagnosis) {
-      setOtherDiagnosis(data.otherDiagnosis);
-    } else if (custom) {
-      setOtherDiagnosis(custom);
-      // garante que o formData contenha esse valor como diagnosis (se já não tiver)
-      const filtered = diag.filter((d) => d !== "Outro" && d !== custom);
-      onChange("diagnoses", [...filtered, custom]);
-      onChange("otherDiagnosis", custom);
-    } else {
-      // se somente 'Outro' estiver presente, mantemos otherDiagnosis vazio (visualiza como Outro)
-      setOtherDiagnosis("");
+    if (!initialized) {
+      const diag = getDiagnoses();
+      const custom = diag.find((d) => !knownSet.has(d) && d.trim() !== "");
+      
+      if (data?.otherDiagnosis) {
+        setOtherDiagnosis(data.otherDiagnosis);
+      } else if (custom) {
+        setOtherDiagnosis(custom);
+      }
+      
+      setInitialized(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // só na montagem
+  }, [initialized, data?.otherDiagnosis, getDiagnoses, knownSet]);
 
+  // Atualiza contadores quando dados mudam
   useEffect(() => {
     setCounts({
       medicationAndAllergies: (data?.medicationAndAllergies ?? "").length,
@@ -67,12 +63,6 @@ function PatientInfoStep({ data, onChange, onNext, isReadOnly = false }) {
       objectives: (data?.objectives ?? "").length,
     });
   }, [data?.medicationAndAllergies, data?.indications, data?.objectives]);
-
-  useEffect(() => {
-    if (data?.interviewDate) {
-      onChange("interviewDate", data.interviewDate.substring(0, 10));
-    }
-  }, [data?.interviewDate, onChange]);
 
   const handleTextareaChange = (field, value) => {
     if (!isReadOnly) {
@@ -82,7 +72,6 @@ function PatientInfoStep({ data, onChange, onNext, isReadOnly = false }) {
   };
 
   const setDiagnosesSanitized = (arr) => {
-    // trim, remove vazios, dedupe, manter ordem
     const cleaned = Array.from(
       new Set(arr.map((s) => (typeof s === "string" ? s.trim() : s)).filter(Boolean))
     );
@@ -92,14 +81,10 @@ function PatientInfoStep({ data, onChange, onNext, isReadOnly = false }) {
   const handleDiagnosisChange = (opt, checked) => {
     if (isReadOnly) return;
     const current = getDiagnoses();
-
-    // start from a clean base: keep only known options (except custom ones)
     const baseKnown = current.filter((d) => knownSet.has(d) && d !== "Outro");
 
     if (checked) {
-      // adicionar opção conhecida
       baseKnown.push(opt);
-      // se marcar outro e já existia otherDiagnosis preenchido, adiciona o texto em vez de 'Outro'
       if (opt === "Outro") {
         if (otherDiagnosis && otherDiagnosis.trim() !== "") {
           baseKnown.push(otherDiagnosis.trim());
@@ -109,10 +94,8 @@ function PatientInfoStep({ data, onChange, onNext, isReadOnly = false }) {
       }
       setDiagnosesSanitized(baseKnown);
     } else {
-      // desmarcar: remove opt e qualquer custom associado
       let updated = baseKnown.filter((d) => d !== opt);
       if (opt === "Outro") {
-        // remove qualquer valor custom (qualquer string que não seja knownSet)
         updated = updated.filter((d) => knownSet.has(d));
         setOtherDiagnosis("");
         onChange("otherDiagnosis", "");
@@ -124,21 +107,17 @@ function PatientInfoStep({ data, onChange, onNext, isReadOnly = false }) {
   const handleOtherInputChange = (value) => {
     if (isReadOnly) return;
 
-    // pega diagnósticos atuais e remove qualquer valor custom pré-existente (tudo que não for knownSet)
     const current = getDiagnoses();
     const keptKnown = current.filter((d) => knownSet.has(d) && d !== "Outro");
     const hasOutroCheckbox = current.includes("Outro");
-
     const trimmed = (value ?? "").trim();
 
     if (trimmed.length > 0) {
-      // adiciona o valor atual (custom)
       const updated = [...keptKnown, trimmed];
       setOtherDiagnosis(trimmed);
       onChange("otherDiagnosis", trimmed);
       setDiagnosesSanitized(updated);
     } else {
-      // se o campo foi limpo, re-insere 'Outro' se a checkbox estiver marcada, caso contrário remove custom
       setOtherDiagnosis("");
       onChange("otherDiagnosis", "");
       const updated = hasOutroCheckbox ? [...keptKnown, "Outro"] : [...keptKnown];
@@ -203,8 +182,7 @@ function PatientInfoStep({ data, onChange, onNext, isReadOnly = false }) {
           })}
         </div>
 
-        {/* mostramos o campo se houver 'Outro' ou se já existir otherDiagnosis */}
-        { (getDiagnoses().includes("Outro") || (otherDiagnosis && otherDiagnosis.trim() !== "")) && (
+        {(getDiagnoses().includes("Outro") || (otherDiagnosis && otherDiagnosis.trim() !== "")) && (
           <div className="mt-3">
             <label className="block text-sm font-medium mb-1 text-gray-700">Especifique o diagnóstico</label>
             <input

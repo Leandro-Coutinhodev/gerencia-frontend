@@ -17,7 +17,7 @@ export default function AnamnesisList2() {
   const [selectedAnamnesis, setSelectedAnamnesis] = useState(null);
   const [encaminharModalOpen, setEncaminharModalOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [activeTab, setActiveTab] = useState("anamneses"); // 'anamneses' ou 'referrals'
+  const [activeTab, setActiveTab] = useState("anamneses");
 
   // Busca anamneses
   const fetchAnamneses = async () => {
@@ -32,10 +32,10 @@ export default function AnamnesisList2() {
     }
   };
 
-  // Busca encaminhamentos
+  // Busca TODOS os encaminhamentos
   const fetchReferrals = async () => {
     try {
-      const data = await AnamnesisService.listarReferral();
+      const data = await AnamnesisService.listAllReferral();
       setReferrals(data);
     } catch (error) {
       console.error("Erro ao carregar encaminhamentos:", error);
@@ -49,14 +49,17 @@ export default function AnamnesisList2() {
 
   useEffect(() => {
     const list = activeTab === "anamneses" ? anamneses : referrals;
-    if (!search) setFiltered(list);
-    else {
+    if (!search) {
+      setFiltered(list);
+    } else {
       const lower = search.toLowerCase();
       setFiltered(
         list.filter((item) => {
-          if (activeTab === "anamneses")
+          if (activeTab === "anamneses") {
             return item.patientName?.toLowerCase().includes(lower);
-          return String(item.anamnesisId)?.includes(lower);
+          }
+          // Na aba de referrals, busca pelo nome do paciente
+          return item.anamnesis?.patient?.name?.toLowerCase().includes(lower);
         })
       );
     }
@@ -77,10 +80,14 @@ export default function AnamnesisList2() {
     await fetchAnamneses();
   };
 
+  const handleViewHistory = (referralId) => {
+    navigate(`/paciente/encaminhar/historico/${referralId}`);
+  };
+
   if (loading) return <p>Carregando dados...</p>;
 
   return (
-    <div className="p-8 bg-[#f9fafc] min-h-screen">
+    <div className="p-4 sm:p-8 bg-[#f9fafc] min-h-screen">
       {alert && (
         <div className="flex justify-center mb-4">
           <Alert
@@ -91,17 +98,17 @@ export default function AnamnesisList2() {
         </div>
       )}
 
-      <h2 className="text-[20px] font-semibold text-gray-800 mb-5">
+      <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-5">
         {activeTab === "anamneses"
           ? "Lista de Anamnese"
           : "Histórico de Encaminhamento"}
       </h2>
 
       {/* Tabs + Search */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="bg-white p-1 rounded-lg shadow-sm flex">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <div className="bg-white p-1 rounded-lg shadow-sm flex w-full sm:w-auto overflow-x-auto">
           <button
-            className={`px-4 py-2 text-sm font-medium rounded-md ${
+            className={`flex-shrink-0 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md whitespace-nowrap ${
               activeTab === "anamneses"
                 ? "bg-blue-50 text-blue-700 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
@@ -111,7 +118,7 @@ export default function AnamnesisList2() {
             Anamneses cadastradas
           </button>
           <button
-            className={`px-4 py-2 text-sm font-medium rounded-md ${
+            className={`flex-shrink-0 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md whitespace-nowrap ${
               activeTab === "referrals"
                 ? "bg-blue-50 text-blue-700 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
@@ -122,7 +129,7 @@ export default function AnamnesisList2() {
           </button>
         </div>
 
-        <div className="relative w-80">
+        <div className="relative w-full sm:w-80">
           <Search
             size={16}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -132,7 +139,7 @@ export default function AnamnesisList2() {
             placeholder={
               activeTab === "anamneses"
                 ? "Buscar paciente"
-                : "Buscar encaminhamento"
+                : "Buscar paciente"
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -143,121 +150,141 @@ export default function AnamnesisList2() {
 
       {/* Tabela */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <table className="min-w-full text-sm text-gray-700">
-          <thead>
-            <tr className="border-b bg-gray-50 text-gray-600 text-primary">
-              {activeTab === "anamneses" ? (
-                <>
-                  <th className="py-3 px-4 text-left font-medium">Nome</th>
-                  <th className="py-3 px-4 text-left font-medium">
-                    Data da entrevista
-                  </th>
-                  <th className="py-3 px-4 text-left font-medium">Responsável</th>
-                  <th className="py-3 px-4 text-left font-medium">Telefone</th>
-                  <th className="py-3 px-4 text-left font-medium">Status</th>
-                  <th className="py-3 px-4 text-center font-medium">Ações</th>
-                </>
-              ) : (
-                <>
-                  <th className="py-3 px-4 text-left font-medium">Nome</th>
-                  <th className="py-3 px-4 text-left font-medium">
-                    Data do Encaminhamento
-                  </th>
-                  <th className="py-3 px-4 text-left font-medium">
-                    Responsável
-                  </th>
-                  <th className="py-3 px-4 text-left font-medium">Assistente</th>
-                  <th className="py-3 px-4 text-center font-medium">Ações</th>
-                </>
-              )}
-            </tr>
-          </thead>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-gray-700">
+            <thead>
+              <tr className="border-b bg-gray-50 text-gray-600 text-primary">
+                {activeTab === "anamneses" ? (
+                  <>
+                    <th className="py-3 px-4 text-left font-medium">Nome</th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      Data da entrevista
+                    </th>
+                    <th className="py-3 px-4 text-left font-medium">Responsável</th>
+                    <th className="py-3 px-4 text-left font-medium">Telefone</th>
+                    <th className="py-3 px-4 text-left font-medium">Status</th>
+                    <th className="py-3 px-4 text-center font-medium">Ações</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="py-3 px-4 text-left font-medium">Nome</th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      Data do Encaminhamento
+                    </th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      Responsável
+                    </th>
+                    <th className="py-3 px-4 text-left font-medium">Assistente</th>
+                    <th className="py-3 px-4 text-center font-medium">Ações</th>
+                  </>
+                )}
+              </tr>
+            </thead>
 
-          <tbody>
-            {filtered.map((item) =>
-              activeTab === "anamneses" ? (
-                <tr key={item.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="py-3 px-4">{item.patientName}</td>
-                  <td className="py-3 px-4">
-                    {item.interviewDate
-                      ? new Date(item.interviewDate).toLocaleDateString("pt-BR")
-                      : "-"}
-                  </td>
-                  <td className="py-3 px-4">{item.guardianName || "-"}</td>
-                  <td className="py-3 px-4">{item.guardianPhone || "-"}</td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        item.status === "Encaminhado"
-                          ? "bg-blue-100 text-blue-700"
-                          : item.status === "Não Respondido"
-                          ? "bg-red-100 text-red-700"
-                          : item.status === "Em Análise"
-                          ? "bg-amber-100 text-amber-700"
-                          : item.status === "Pronto"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex justify-center gap-3">
-                      <button
-                        className={`${
-                          item.status === "Pronto"
-                            ? "text-blue-600 hover:text-blue-800"
-                            : "text-gray-400 cursor-not-allowed"
-                        }`}
-                        title={
-                          item.status === "Pronto"
-                            ? "Encaminhar anamnese"
-                            : "Disponível apenas quando o status for 'Pronto'"
-                        }
-                        onClick={() =>
-                          item.status === "Pronto" && handleSendData(item)
-                        }
-                        disabled={item.status !== "Pronto"}
-                      >
-                        <Send size={18} />
-                      </button>
+            <tbody>
+              {filtered.length > 0 ? (
+                filtered.map((item) =>
+                  activeTab === "anamneses" ? (
+                    <tr key={item.id} className="border-b hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4">{item.patientName}</td>
+                      <td className="py-3 px-4">
+                        {item.interviewDate
+                          ? new Date(item.interviewDate).toLocaleDateString("pt-BR")
+                          : "-"}
+                      </td>
+                      <td className="py-3 px-4">{item.guardianName || "-"}</td>
+                      <td className="py-3 px-4">{item.guardianPhone || "-"}</td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            item.status === "Encaminhada"
+                              ? "bg-blue-100 text-blue-700"
+                              : item.status === "Não Respondido"
+                              ? "bg-red-100 text-red-700"
+                              : item.status === "Em Análise"
+                              ? "bg-amber-100 text-amber-700"
+                              : item.status === "Pronto"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex justify-center gap-3">
+                          <button
+                            className={`${
+                              item.status === "Pronto"
+                                ? "text-blue-600 hover:text-blue-800"
+                                : "text-gray-400 cursor-not-allowed"
+                            }`}
+                            title={
+                              item.status === "Pronto"
+                                ? "Encaminhar anamnese"
+                                : "Disponível apenas quando o status for 'Pronto'"
+                            }
+                            onClick={() =>
+                              item.status === "Pronto" && handleSendData(item)
+                            }
+                            disabled={item.status !== "Pronto"}
+                          >
+                            <Send size={18} />
+                          </button>
 
-                      <button
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Selecionar campos"
-                        onClick={() => handleSelectFields(item)}
-                      >
-                        <FileText size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="py-3 px-4">{item.patientName}</td>
-                  <td className="py-3 px-4">
-                    {new Date(item.sentAt).toLocaleDateString("pt-BR")}
-                  </td>
-                  <td className="py-3 px-4">{item.guardianName || "-"}</td>
-                  <td className="py-3 px-4">{item.assistantName || "-"}</td>
-                  <td className="py-3 px-4 text-center">
-                    <div className="flex justify-center gap-3">
+                          <button
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Selecionar campos"
+                            onClick={() => handleSelectFields(item)}
+                          >
+                            <FileText size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={item.id} className="border-b hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4">
+                        {item.anamnesis?.patient?.name || "-"}
+                      </td>
+                      <td className="py-3 px-4">
+                        {item.sentAt
+                          ? new Date(item.sentAt).toLocaleDateString("pt-BR")
+                          : "-"}
+                      </td>
+                      <td className="py-3 px-4">
+                        {item.anamnesis?.patient?.guardian?.name || "-"}
+                      </td>
+                      <td className="py-3 px-4">
+                        {item.assistant?.name || "-"}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex justify-center gap-3">
                           <button
                             className="text-primary hover:text-primary/70 transition"
                             title="Visualizar histórico"
-                            onClick={() => navigate(`/paciente/encaminhar/historico/${item.patientId}`)}
+                            onClick={() => handleViewHistory(item.id)}
                           >
                             <Eye size={18} />
                           </button>
-
                         </div>
+                      </td>
+                    </tr>
+                  )
+                )
+              ) : (
+                <tr>
+                  <td
+                    colSpan={activeTab === "anamneses" ? 6 : 5}
+                    className="py-8 text-center text-gray-500"
+                  >
+                    Nenhum registro encontrado
                   </td>
                 </tr>
-              )
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <ConfirmarEncaminhamentoModal

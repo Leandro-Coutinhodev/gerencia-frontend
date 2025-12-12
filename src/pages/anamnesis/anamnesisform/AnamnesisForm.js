@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { CheckCircle, XCircle, Lock } from "lucide-react";
 import PatientInfoStep from "../patientinfostep/PatientInfoStep";
 import HistoryStep from "../historystep/HistoryStep";
 import ReportStep from "../reportstep/ReportStep";
@@ -12,6 +13,8 @@ function AnamnesisForm() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [tokenStatus, setTokenStatus] = useState(null); // 'valid', 'expired', 'invalid'
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [alert, setAlert] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -37,6 +40,7 @@ function AnamnesisForm() {
   useEffect(() => {
     const carregarDados = async () => {
       try {
+        // MODO 1: Visualização (anamneseid) - READ ONLY
         if (anamneseid) {
           setIsReadOnly(true);
           const dados = await AnamnesisService.buscarPorId(anamneseid);
@@ -44,9 +48,9 @@ function AnamnesisForm() {
           const diagArray = Array.isArray(dados.diagnoses)
             ? dados.diagnoses
             : (dados.diagnoses ?? "")
-              .split(",")
-              .map((d) => d.trim())
-              .filter(Boolean);
+                .split(",")
+                .map((d) => d.trim())
+                .filter(Boolean);
 
           const cleaned = Array.from(new Set(diagArray.map((s) => s.trim()).filter(Boolean)));
 
@@ -87,21 +91,35 @@ function AnamnesisForm() {
             therapists: dados.therapists ?? "",
             report: null,
           });
-        } else if (token) {
+          setTokenStatus('valid'); // Para não mostrar telas de erro
+        } 
+        // MODO 2: Formulário Público (token)
+        else if (token) {
           const dados = await AnamnesisService.buscarPorToken(token);
+
+          // Verifica se já foi respondida
+          if (dados.status !== 'Encaminhada') {
+            setTokenStatus('expired');
+            setLoading(false);
+            return;
+          }
+
+          setTokenStatus('valid');
+          
           const diagArray = Array.isArray(dados.diagnoses)
             ? dados.diagnoses
             : (dados.diagnoses ?? "")
-              .split(",")
-              .map((d) => d.trim())
-              .filter(Boolean);
+                .split(",")
+                .map((d) => d.trim())
+                .filter(Boolean);
+
           setFormData({
             id: dados.id ?? "",
             patientId: dados.patientId ?? "",
             patientName: dados.patientName ?? "",
             interviewDate: dados.interviewDate
               ? dados.interviewDate.substring(0, 10)
-              : "",
+              : new Date().toISOString().split("T")[0],
             diagnoses: Array.from(new Set(diagArray)),
             otherDiagnosis: dados.otherDiagnosis ?? "",
             medicationAndAllergies: dados.medicationAndAllergies ?? "",
@@ -116,15 +134,17 @@ function AnamnesisForm() {
             therapists: dados.therapists ?? "",
             report: null,
           });
-        } else if (anamneseId) {
+        } 
+        // MODO 3: Edição (anamneseId)
+        else if (anamneseId) {
           const dados = await AnamnesisService.buscarPorId(anamneseId);
 
           const diagArray = Array.isArray(dados.diagnoses)
             ? dados.diagnoses
             : (dados.diagnoses ?? "")
-              .split(",")
-              .map((d) => d.trim())
-              .filter(Boolean);
+                .split(",")
+                .map((d) => d.trim())
+                .filter(Boolean);
 
           const cleaned = Array.from(new Set(diagArray.map((s) => s.trim()).filter(Boolean)));
 
@@ -165,9 +185,11 @@ function AnamnesisForm() {
             therapists: dados.therapists ?? "",
             report: null,
           });
+          setTokenStatus('valid');
         }
       } catch (error) {
         console.error(error);
+        setTokenStatus('invalid');
         setAlert({
           type: "error",
           message: "Erro ao carregar dados da anamnese.",
@@ -178,7 +200,7 @@ function AnamnesisForm() {
     };
 
     carregarDados();
-  }, [token, anamneseid]);
+  }, [token, anamneseid, anamneseId]);
 
   const handleChange = (field, value) => {
     if (!isReadOnly) {
@@ -188,6 +210,8 @@ function AnamnesisForm() {
 
   const handleSubmit = async () => {
     try {
+      setLoading(true);
+
       const raw = Array.isArray(formData.diagnoses)
         ? formData.diagnoses
         : (formData.diagnoses ?? "").split(",").map((d) => d.trim());
@@ -207,12 +231,20 @@ function AnamnesisForm() {
       const keptKnown = raw.filter((d) => knownOptions.has(d) && d !== "Outro");
       const other = (formData.otherDiagnosis ?? "").trim();
       const finalDiagnoses = other ? [...keptKnown, other] : keptKnown;
-
       const finalUnique = Array.from(new Set(finalDiagnoses.map((s) => s.trim()).filter(Boolean)));
 
       const dadosParaEnvio = {
-        ...formData,
         diagnoses: finalUnique.join(", "),
+        medicationAndAllergies: formData.medicationAndAllergies,
+        indications: formData.indications,
+        objectives: formData.objectives,
+        developmentHistory: formData.developmentHistory,
+        preferences: formData.preferences,
+        interferingBehaviors: formData.interferingBehaviors,
+        qualityOfLife: formData.qualityOfLife,
+        feeding: formData.feeding,
+        sleep: formData.sleep,
+        therapists: formData.therapists,
       };
 
       const reports = Array.isArray(formData.report)
@@ -221,100 +253,191 @@ function AnamnesisForm() {
           ? [formData.report]
           : [];
 
-      delete dadosParaEnvio.report;
-      delete dadosParaEnvio.patientName;
+      // Se for formulário público (token), usa responderAnamnese
+      if (token) {
+        const formDataToSend = new FormData();
+        
+        formDataToSend.append('anamnesis', new Blob([JSON.stringify(dadosParaEnvio)], {
+          type: 'application/json'
+        }));
 
-      await AnamnesisService.criar(formData.id, dadosParaEnvio, reports);
+        if (reports.length > 0) {
+          reports.forEach((file) => {
+            formDataToSend.append('reports', file);
+          });
+        }
 
-      setAlert({
-        type: "success",
-        message: "Anamnese salva com sucesso!",
-      });
+        await AnamnesisService.responderAnamnese(formData.id, formDataToSend);
+
+        setSubmitSuccess(true);
+        setAlert({
+          type: "success",
+          message: "Anamnese enviada com sucesso! Obrigado pela colaboração.",
+        });
+
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+      } else {
+        // Se for edição autenticada, usa criar
+        await AnamnesisService.criar(formData.id, dadosParaEnvio, reports);
+
+        setAlert({
+          type: "success",
+          message: "Anamnese salva com sucesso!",
+        });
+      }
     } catch (error) {
       console.error(error);
       setAlert({
         type: "error",
         message: "Erro ao salvar anamnese.",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Tela de carregamento
   if (loading) {
-    return <div className="text-center p-6">Carregando formulário...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3D75C4] mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando formulário...</p>
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-6 w-full max-w-4xl mx-auto">
-      {alert && (
-        <Alert
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert(null)}
-          duration={4000}
-        />
-      )}
-
-      {(anamneseId) && (
-        <h2 className="text-2xl font-semibold mb-4">
-          Atualizar Anamnese
-        </h2>
-
-      )}
-      {(anamneseid) && (
-        <h2 className="text-2xl font-semibold mb-4">
-          Visualizar Anamnese
-        </h2>
-
-      )}
-      {(token) && (
-        <h2 className="text-2xl font-semibold mb-4 text-center">
-          Cadastrar Anamnese
-        </h2>
-
-      )}
-
-      <div className="flex border-b">
-        {["Informações do paciente", "Histórico", "Laudo"].map((label, index) => (
-          <button
-            key={label}
-            className={`px-4 py-3 text-sm font-medium transition-colors ${step === index
-                ? "border-b-2 border-primary text-primary"
-                : "text-gray-500 hover:text-primary"
-              }`}
-            onClick={() => setStep(index)}
-          >
-            {label}
-          </button>
-        ))}
+  // Tela de sucesso (apenas para formulário público)
+  if (submitSuccess && token) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
+          <CheckCircle className="text-[#3D75C4] mx-auto mb-4" size={64} />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Enviado com sucesso!</h2>
+          <p className="text-gray-600 mb-4">
+            Obrigado por preencher o formulário. As informações foram salvas com sucesso.
+          </p>
+          <p className="text-sm text-gray-500">
+            Você será redirecionado em instantes...
+          </p>
+        </div>
       </div>
+    );
+  }
 
-      <div className="mt-6">
-        {step === 0 && (
-          <PatientInfoStep
-            data={formData}
-            onChange={handleChange}
-            onNext={() => setStep(1)}
-            isReadOnly={isReadOnly}
+  // Tela de token expirado (apenas para formulário público)
+  if (tokenStatus === 'expired' && token) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
+          <Lock className="text-[#3D75C4] mx-auto mb-4" size={64} />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Formulário já respondido</h2>
+          <p className="text-gray-600 mb-4">
+            Este formulário já foi preenchido e enviado anteriormente.
+          </p>
+          <p className="text-sm text-gray-500">
+            Se você acredita que isso é um erro, entre em contato com a clínica.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Tela de token inválido (apenas se for token e falhou)
+  if (tokenStatus === 'invalid' && token) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
+          <XCircle className="text-[#3D75C4] mx-auto mb-4" size={64} />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Link inválido</h2>
+          <p className="text-gray-600 mb-4">
+            O link que você acessou é inválido ou expirou.
+          </p>
+          <p className="text-sm text-gray-500">
+            Por favor, solicite um novo link à clínica.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Formulário (visualização ou edição)
+  return (
+    <div className="min-h-screen bg-gray-50 py-4 px-2 sm:py-8 sm:px-4">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 w-full max-w-4xl mx-auto">
+        {alert && (
+          <Alert
+            type={alert.type}
+            message={alert.message}
+            onClose={() => setAlert(null)}
+            duration={4000}
           />
         )}
-        {step === 1 && (
-          <HistoryStep
-            data={formData}
-            onChange={handleChange}
-            onPrev={() => setStep(0)}
-            onNext={() => setStep(2)}
-            isReadOnly={isReadOnly}
-          />
+
+        {anamneseId && (
+          <h2 className="text-xl sm:text-2xl font-semibold mb-4">Atualizar Anamnese</h2>
         )}
-        {step === 2 && (
-          <ReportStep
-            data={formData}
-            onChange={handleChange}
-            onPrev={() => setStep(1)}
-            onSubmit={handleSubmit}
-            isReadOnly={isReadOnly}
-          />
+        {anamneseid && (
+          <h2 className="text-xl sm:text-2xl font-semibold mb-4">Visualizar Anamnese</h2>
         )}
+        {token && (
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+              Formulário de Anamnese
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600">
+              Paciente: <span className="font-semibold">{formData.patientName}</span>
+            </p>
+          </div>
+        )}
+
+        <div className="flex overflow-x-auto border-b -mx-4 px-4 sm:mx-0 sm:px-0">
+          {["Informações do paciente", "Histórico", "Laudo"].map((label, index) => (
+            <button
+              key={label}
+              className={`flex-shrink-0 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                step === index
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-gray-500 hover:text-primary"
+              }`}
+              onClick={() => setStep(index)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 sm:mt-6">
+          {step === 0 && (
+            <PatientInfoStep
+              data={formData}
+              onChange={handleChange}
+              onNext={() => setStep(1)}
+              isReadOnly={isReadOnly}
+            />
+          )}
+          {step === 1 && (
+            <HistoryStep
+              data={formData}
+              onChange={handleChange}
+              onPrev={() => setStep(0)}
+              onNext={() => setStep(2)}
+              isReadOnly={isReadOnly}
+            />
+          )}
+          {step === 2 && (
+            <ReportStep
+              data={formData}
+              onChange={handleChange}
+              onPrev={() => setStep(1)}
+              onSubmit={handleSubmit}
+              isReadOnly={isReadOnly}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

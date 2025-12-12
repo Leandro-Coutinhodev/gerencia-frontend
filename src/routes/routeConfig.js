@@ -12,6 +12,9 @@ import AnamnesisForm from "../pages/anamnesis/anamnesisform/AnamnesisForm";
 import AnamnesisList2 from "../pages/anamnesis/anamnesislist/AnamnesisList2";
 import AnamnesisSelectFields from "../pages/anamnesisselectedfields/AnamnesisSelectedFields";
 import AnamnesisReferralHistory from "../pages/anamnesis/anamnesisreferralhistory/AnamnesisReferralHistory";
+import RelatorioAnamnese from "../pages/relatorioanamnese/RelatorioAnamnese";
+import VisualizarRelatorio from "../pages/anamnesis/visualizarrelatorio/VisualizarRelatorio";
+import GenerateContract from "../pages/contract/generatecontract/GenerateContract";
 
 
 const routeConfig = [
@@ -57,6 +60,18 @@ const routeConfig = [
     {
       path: '/paciente/encaminhar/historico/:patientId',
       element: <AnamnesisReferralHistory />
+    },
+    {
+      path: '/relatorios',
+      element: <RelatorioAnamnese />
+    },
+    {
+      path: '/relatorios/:referralId',
+      element: <VisualizarRelatorio />
+    },
+    {
+      path: '/contrato',
+      element: <GenerateContract />
     }]
   },
   {

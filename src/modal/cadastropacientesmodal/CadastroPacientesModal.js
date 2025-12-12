@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import GuardiansService from "../../services/GuardiansService";
 
 function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
@@ -9,7 +10,34 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
   const [guardianSuggestions, setGuardianSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Preenche com dados do paciente/guardian ao editar OU reseta para valores vazios
+  // Função para formatar CPF
+  const formatCPF = (value) => {
+    const numbers = value.replace(/\D/g, "");
+    const limited = numbers.slice(0, 11);
+    if (limited.length <= 3) return limited;
+    if (limited.length <= 6) return `${limited.slice(0, 3)}.${limited.slice(3)}`;
+    if (limited.length <= 9) return `${limited.slice(0, 3)}.${limited.slice(3, 6)}.${limited.slice(6)}`;
+    return `${limited.slice(0, 3)}.${limited.slice(3, 6)}.${limited.slice(6, 9)}-${limited.slice(9)}`;
+  };
+
+  // Função para formatar CEP
+  const formatCEP = (value) => {
+    const numbers = value.replace(/\D/g, "");
+    const limited = numbers.slice(0, 8);
+    if (limited.length <= 5) return limited;
+    return `${limited.slice(0, 5)}-${limited.slice(5)}`;
+  };
+
+  // Função para formatar telefone
+  const formatPhone = (value) => {
+    const numbers = value.replace(/\D/g, "");
+    const limited = numbers.slice(0, 11);
+    if (limited.length <= 2) return limited;
+    if (limited.length <= 6) return `(${limited.slice(0, 2)}) ${limited.slice(2)}`;
+    if (limited.length <= 10) return `(${limited.slice(0, 2)}) ${limited.slice(2, 6)}-${limited.slice(6)}`;
+    return `(${limited.slice(0, 2)}) ${limited.slice(2, 7)}-${limited.slice(7)}`;
+  };
+
   useEffect(() => {
     if (initialData) {
       const formatted = {
@@ -72,7 +100,6 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
     }
   }, [initialData, isOpen]);
 
-  // Buscar estados ao abrir o modal
   useEffect(() => {
     if (isOpen) {
       fetch("https://brasilapi.com.br/api/ibge/uf/v1")
@@ -85,7 +112,6 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
     }
   }, [isOpen]);
 
-  // Buscar cidades quando estado mudar
   useEffect(() => {
     if (form.guardian?.state) {
       fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${form.guardian.state}`)
@@ -100,61 +126,71 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
     }
   }, [form.guardian?.state]);
 
-  // Buscar responsáveis no backend
   const fetchGuardians = async (query) => {
-    if (!query || query.length < 2) {
+    const cpfNumbers = query.replace(/\D/g, "");
+    if (!cpfNumbers || cpfNumbers.length < 3) {
       setGuardianSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
     try {
-      const data = await GuardiansService.listarPorCpf(query); // /guardian?cpf=...
+      const data = await GuardiansService.listarPorCpf(cpfNumbers);
       setGuardianSuggestions(data);
+      setShowSuggestions(data.length > 0);
     } catch (err) {
       console.error("Erro ao buscar responsáveis:", err);
+      setGuardianSuggestions([]);
+      setShowSuggestions(false);
     }
   };
 
-
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, files } = e.target;
+
+    if (type === "file") {
+      const file = files[0];
+      setForm((prev) => ({ ...prev, photo: file }));
+      return;
+    }
 
     if (name.startsWith("guardian.")) {
       const field = name.split(".")[1];
+      let formattedValue = value;
+
+      // Aplicar formatações
+      if (field === "cpf") {
+        formattedValue = formatCPF(value);
+        fetchGuardians(formattedValue);
+        setShowSuggestions(true);
+      } else if (field === "cep") {
+        formattedValue = formatCEP(value);
+      } else if (field === "phoneNumber1" || field === "phoneNumber2") {
+        formattedValue = formatPhone(value);
+      }
 
       setForm((prev) => ({
         ...prev,
         guardian: {
           ...prev.guardian,
-          [field]: value,
+          [field]: formattedValue,
           ...(field === "state" ? { city: "" } : {}),
         },
       }));
-
-      // 🔎 Se for CPF do responsável, dispara busca
-      if (field === "cpf") {
-        fetchGuardians(value);
-        setShowSuggestions(true);
-      }
     } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
-    }
+      let formattedValue = value;
+      
+      // Formatar CPF do paciente
+      if (name === "cpf") {
+        formattedValue = formatCPF(value);
+      }
 
-    if (e.target.type === "file") {
-      const file = e.target.files[0];
-      setForm((prev) => ({
-        ...prev,
-        photo: file
-      }));
-      return;
+      setForm((prev) => ({ ...prev, [name]: formattedValue }));
     }
-
   };
-
 
   const handleSelectGuardian = (guardian) => {
     setForm((prev) => ({
       ...prev,
-      kinship: prev.kinship, // mantém o parentesco atual
       guardian: {
         id: guardian.id,
         name: guardian.name,
@@ -177,193 +213,297 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
     setShowSuggestions(false);
   };
 
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(form);
+    
+    // Criar FormData para enviar multipart/form-data
+    const formData = new FormData();
+    
+    // Preparar o objeto patient (sem a foto)
+    const patientData = {
+      name: form.name,
+      cpf: form.cpf,
+      dateBirth: form.dateBirth,
+      kinship: form.kinship,
+      guardian: {
+        id: form.guardian?.id || null,
+        name: form.guardian?.name,
+        cpf: form.guardian?.cpf,
+        email: form.guardian?.email,
+        phoneNumber1: form.guardian?.phoneNumber1,
+        phoneNumber2: form.guardian?.phoneNumber2,
+        addressLine1: form.guardian?.addressLine1,
+        addressLine2: form.guardian?.addressLine2,
+        dateBirth: form.guardian?.dateBirth,
+        cep: form.guardian?.cep,
+        state: form.guardian?.state,
+        city: form.guardian?.city,
+        number: form.guardian?.number,
+        neighborhood: form.guardian?.neighborhood
+      }
+    };
+    
+    // Se estiver editando, adiciona o ID
+    if (form.id) {
+      patientData.id = form.id;
+    }
+    
+    // Adicionar patient como JSON blob
+    formData.append('patient', new Blob([JSON.stringify(patientData)], {
+      type: 'application/json'
+    }));
+    
+    // Adicionar foto se existir
+    if (form.photo instanceof File) {
+      formData.append('photo', form.photo);
+    } else {
+      // Enviar um arquivo vazio se não houver foto
+      formData.append('photo', new Blob([], { type: 'application/octet-stream' }));
+    }
+    
+    // Log para debug
+    console.log('FormData sendo enviado:');
+    for (let pair of formData.entries()) {
+      console.log(pair[0], pair[1]);
+    }
+    
+    onSave(formData);
   };
 
   if (!isOpen) return null;
 
-  // Verifica se houve alteração
   const isEditing = Boolean(initialData);
   const isChanged = JSON.stringify(form) !== JSON.stringify(originalForm);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl my-8 p-8">
-        <h2 className="text-2xl font-semibold mb-6">
-          {isEditing ? "Editar Paciente" : "Cadastrar Paciente"}
-        </h2>
+    <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-8">
+        {/* Header */}
+        <div className="flex justify-between items-center px-8 py-5 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-800">
+            {isEditing ? "Editar Paciente" : "Cadastrar Paciente"}
+          </h2>
+          <button 
+            onClick={onClose} 
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+          >
+            <X size={24} />
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Paciente */}
+        {/* Form Content */}
+        <div className="px-8 py-6 space-y-8 max-h-[75vh] overflow-y-auto">
+          {/* Informações do Paciente */}
           <div>
-            <div>
-              <h3 className="text-lg font-medium mb-4">Informações do Paciente</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium">Nome Completo*</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">CPF*</label>
-                  <input
-                    type="text"
-                    name="cpf"
-                    value={form.cpf}
-                    onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Data de Nascimento*</label>
-                  <input
-                    type="date"
-                    name="dateBirth"
-                    value={form.dateBirth}
-                    onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Foto</label>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">
+              Informações do Paciente
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome Completo
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={form.name || ""}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">CPF</label>
+                <input
+                  type="text"
+                  name="cpf"
+                  value={form.cpf || ""}
+                  onChange={handleChange}
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Data de Nascimento
+                </label>
+                <input
+                  type="date"
+                  name="dateBirth"
+                  value={form.dateBirth || ""}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Foto de perfil
+                </label>
+                <div className="relative border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
                   <input
                     type="file"
                     name="photo"
                     accept="image/*"
-                    className="w-full border rounded-lg px-3 py-2 mt-1"
                     onChange={handleChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
+                  <div className="px-6 py-8 text-center pointer-events-none">
+                    <div className="text-gray-400 text-sm mb-1">
+                      {form.photo instanceof File ? form.photo.name : "Envie a imagem"}
+                    </div>
+                    <div className="text-gray-300 text-2xl">📎</div>
+                  </div>
                 </div>
               </div>
             </div>
-
           </div>
 
-          {/* Responsável */}
+          {/* Informações do Responsável */}
           <div>
-            <h3 className="text-lg font-medium mb-4">Informações do Responsável</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">
+              Informações do Responsável
+            </h3>
             <div className="grid grid-cols-2 gap-4">
-
               {/* CPF com autocomplete */}
               <div className="col-span-2 relative">
-                <label className="block text-sm font-medium">CPF*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  CPF do Responsável
+                </label>
                 <input
                   type="text"
                   name="guardian.cpf"
-                  value={form.guardian.cpf}
+                  value={form.guardian?.cpf || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2"
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
                 {showSuggestions && guardianSuggestions.length > 0 && (
-                  <ul className="absolute z-10 bg-white border w-full rounded-lg shadow max-h-40 overflow-y-auto">
+                  <ul className="absolute z-20 bg-white border border-gray-300 w-full rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1">
                     {guardianSuggestions.map((g) => (
                       <li
                         key={g.id}
-                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                        className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-b-0"
                         onClick={() => handleSelectGuardian(g)}
                       >
-                        {g.cpf} - {g.name}
+                        <div className="font-medium text-gray-800">{g.name}</div>
+                        <div className="text-gray-500 text-xs">{g.cpf}</div>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
+
               <div className="col-span-2">
-                <label className="block text-sm font-medium">Nome Completo*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome Completo
+                </label>
                 <input
                   type="text"
                   name="guardian.name"
-                  value={form.guardian.name}
-                  className="w-full border rounded-lg px-3 py-2 bg-gray-100"
+                  value={form.guardian?.name || ""}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
                 />
               </div>
 
-
-              {/* ... demais campos do responsável ... */}
-
               <div>
-                <label className="block text-sm font-medium">Data de Nascimento*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Data de Nascimento
+                </label>
                 <input
                   type="date"
                   name="guardian.dateBirth"
-                  value={form.guardian.dateBirth}
+                  value={form.guardian?.dateBirth || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium">Parentesco*</label>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Parentesco
+                </label>
                 <input
                   type="text"
                   name="kinship"
-                  value={form?.kinship}
+                  value={form?.kinship || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2 bg-gray-100"
+                  placeholder="Ex: Mãe, Pai, Avó..."
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium">E-mail</label>
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">E-mail</label>
                 <input
                   type="email"
                   name="guardian.email"
-                  value={form.guardian.email}
+                  value={form.guardian?.email || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Telefone 1 (WhatsApp)*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Telefone 1 (WhatsApp)
+                </label>
                 <input
                   type="text"
                   name="guardian.phoneNumber1"
-                  value={form.guardian?.phoneNumber1}
+                  value={form.guardian?.phoneNumber1 || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2"
+                  placeholder="(00) 00000-0000"
+                  maxLength={15}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Telefone 2 (WhatsApp)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Telefone 2
+                </label>
                 <input
                   type="text"
                   name="guardian.phoneNumber2"
-                  value={form.guardian?.phoneNumber2}
+                  value={form.guardian?.phoneNumber2 || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2"
+                  placeholder="(00) 00000-0000"
+                  maxLength={15}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">CEP*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">CEP</label>
                 <input
                   type="text"
                   name="guardian.cep"
-                  value={form.guardian.cep}
+                  value={form.guardian?.cep || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2"
+                  placeholder="00000-000"
+                  maxLength={9}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Estado*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
                 <select
                   name="guardian.state"
-                  value={form.guardian.state}
+                  value={form.guardian?.state || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2 bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   required
                 >
                   <option value="">Selecione um estado</option>
@@ -374,15 +514,16 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium">Cidade*</label>
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Cidade</label>
                 <select
                   name="guardian.city"
-                  value={form.guardian.city}
+                  value={form.guardian?.city || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2 bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                   required
-                  disabled={!form.guardian.state}
+                  disabled={!form.guardian?.state}
                 >
                   <option value="">Selecione uma cidade</option>
                   {cidades.map((cidade) => (
@@ -392,73 +533,84 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Endereço*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Endereço (Rua/Avenida)
+                </label>
                 <input
                   type="text"
                   name="guardian.addressLine1"
-                  value={form.guardian.addressLine1}
+                  value={form.guardian?.addressLine1 || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium">Número*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Número</label>
                 <input
                   type="text"
                   name="guardian.number"
-                  value={form.guardian.number}
+                  value={form.guardian?.number || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium">Bairro*</label>
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Bairro</label>
                 <input
                   type="text"
                   name="guardian.neighborhood"
-                  value={form.guardian.neighborhood}
+                  value={form.guardian?.neighborhood || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
+
               <div className="col-span-2">
-                <label className="block text-sm font-medium">Complemento</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Complemento
+                </label>
                 <input
                   type="text"
                   name="guardian.addressLine2"
-                  value={form.guardian.addressLine2}
+                  value={form.guardian?.addressLine2 || ""}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2"
+                  placeholder="Apartamento, bloco, etc..."
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Botões */}
-          <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-100"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className={`px-6 py-2 rounded-lg text-white transition ${isEditing && !isChanged
+        {/* Footer com botões */}
+        <div className="flex justify-end gap-3 px-8 py-5 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-white transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className={`px-6 py-2.5 rounded-lg text-white font-medium transition-colors shadow-sm ${
+              isEditing && !isChanged
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-primary hover:bg-primary/90"
-                }`}
-              disabled={isEditing && !isChanged}
-            >
-              Salvar
-            </button>
-          </div>
-        </form>
+                : "bg-[#3D75C4] hover:bg-[#2d5ea3]"
+            }`}
+            disabled={isEditing && !isChanged}
+          >
+            Salvar
+          </button>
+        </div>
       </div>
     </div>
   );
