@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Eye, Pencil, Trash2, ChevronDown, UserPlus, Link2, Check } from "lucide-react";
 import PatientsService from "../../services/PatientsService";
 import CadastroPacientesModal from "../../modal/cadastropacientesmodal/CadastroPacientesModal";
 import Alert from "../../components/alert/Alert";
@@ -13,6 +13,9 @@ function PatientList() {
   const [alert, setAlert] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const dropdownRef = useRef(null);
 
   const fetchPatients = async () => {
     try {
@@ -29,27 +32,40 @@ function PatientList() {
     fetchPatients();
   }, []);
 
- const handleSave = async (patientData) => {
-  try {
-    if (editPatient) {
-      await PatientsService.atualizar(editPatient.id, patientData);
-      setAlert({ type: "success", message: "Paciente atualizado com sucesso!" });
-    } else {
-      await PatientsService.cadastrar(patientData);
-      setAlert({ type: "success", message: "Paciente salvo com sucesso!" });
-    }
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
 
-    fetchPatients();
-    setModalOpen(false);
-    setEditPatient(null);
-  } catch (error) {
-    console.error("Erro detalhado da API:", error.response); // <<< ADICIONE ESTA LINHA
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleSave = async (patientData) => {
+    try {
+      if (editPatient) {
+        await PatientsService.atualizar(editPatient.id, patientData);
+        setAlert({ type: "success", message: "Paciente atualizado com sucesso!" });
+      } else {
+        await PatientsService.cadastrar(patientData);
+        setAlert({ type: "success", message: "Paciente salvo com sucesso!" });
+      }
+
+      fetchPatients();
+      setModalOpen(false);
+      setEditPatient(null);
+    } catch (error) {
+      console.error("Erro detalhado da API:", error.response);
       console.log(patientData);
-    // Extrai uma mensagem mais útil, se disponível
-    const errorMessage = error.response?.data?.message || "Erro ao salvar paciente.";
-    setAlert({ type: "error", message: errorMessage });
-  }
-};
+      const errorMessage = error.response?.data?.message || "Erro ao salvar paciente.";
+      setAlert({ type: "error", message: errorMessage });
+    }
+  };
 
   const handleDeleteClick = (patient) => {
     setPatientToDelete(patient);
@@ -64,11 +80,33 @@ function PatientList() {
       fetchPatients();
       setAlert({ type: "success", message: "Paciente excluído com sucesso!" });
     } catch (error) {
-      setAlert({ type: "error", message: "Erro ao excluir paciente." });
+      setAlert({ type: "error", message: "Erro ao excluir paciente(Este paciente pode ter registros associados)." });
     } finally {
       setConfirmOpen(false);
       setPatientToDelete(null);
     }
+  };
+
+  const handleCopyLink = () => {
+    const link = "http://localhost:3000/form-cadastro-paciente";
+    navigator.clipboard.writeText(link).then(() => {
+      setLinkCopied(true);
+      setShowDropdown(false);
+      setAlert({ type: "success", message: "Link copiado para a área de transferência!" });
+      
+      // Reset do ícone após 2 segundos
+      setTimeout(() => {
+        setLinkCopied(false);
+      }, 2000);
+    }).catch((err) => {
+      console.error("Erro ao copiar link:", err);
+      setAlert({ type: "error", message: "Erro ao copiar link." });
+    });
+  };
+
+  const handleManualRegister = () => {
+    setShowDropdown(false);
+    setModalOpen(true);
   };
 
   if (loading) {
@@ -94,12 +132,53 @@ function PatientList() {
 
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Pacientes Cadastrados</h2>
-        <button
-          className="bg-primary text-white px-4 py-2 rounded-full hover:bg-primary/90 transition"
-          onClick={() => setModalOpen(true)}
-        >
-          + Cadastrar Paciente
-        </button>
+        
+        {/* Dropdown Button */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            className="bg-primary text-white px-4 py-2 rounded-full hover:bg-primary/90 transition flex items-center gap-2"
+            onClick={() => setShowDropdown(!showDropdown)}
+          >
+            + Cadastrar Paciente
+            <ChevronDown 
+              size={18} 
+              className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {/* Dropdown Menu */}
+          {showDropdown && (
+            <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+              <button
+                onClick={handleManualRegister}
+                className="w-full px-4 py-3 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700"
+              >
+                <UserPlus size={20} className="text-primary" />
+                <div>
+                  <div className="font-medium">Cadastro Manual</div>
+                  <div className="text-xs text-gray-500">Preencher formulário agora</div>
+                </div>
+              </button>
+
+              <div className="border-t border-gray-100 my-1"></div>
+
+              <button
+                onClick={handleCopyLink}
+                className="w-full px-4 py-3 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700"
+              >
+                {linkCopied ? (
+                  <Check size={20} className="text-green-500" />
+                ) : (
+                  <Link2 size={20} className="text-primary" />
+                )}
+                <div>
+                  <div className="font-medium">Link Público</div>
+                  <div className="text-xs text-gray-500">Copiar link do formulário</div>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto">

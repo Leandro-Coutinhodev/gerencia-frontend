@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { FileText, X } from "lucide-react";
+import config from "../../../config/Config";
 
 function ReportStep({ data, onChange, onPrev, onSubmit, isReadOnly = false }) {
   const [files, setFiles] = useState([]);
@@ -27,10 +28,11 @@ function ReportStep({ data, onChange, onPrev, onSubmit, isReadOnly = false }) {
   };
 
   const anamnesisId = data?.id || data?.anamneseId;
+  const host = config.URLS.HOST;
 
   const openReport = () => {
     if (!anamnesisId) return;
-    const url = `http://72.62.12.212:8080/api-gateway/gerencia/anamnesis/${anamnesisId}/report`;
+    const url = `${host}/api-gateway/gerencia/anamnesis/${anamnesisId}/report`;
     window.open(url, "_blank");
   };
 

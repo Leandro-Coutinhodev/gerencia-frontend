@@ -338,6 +338,20 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
                   required
                 />
               </div>
+                 <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Parentesco
+                </label>
+                <input
+                  type="text"
+                  name="kinship"
+                  value={form?.kinship || ""}
+                  onChange={handleChange}
+                  placeholder="Ex: Filho(a), Neto(a), Sobrinho(a)..."
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Foto de perfil
@@ -357,6 +371,7 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
                     <div className="text-gray-300 text-2xl">📎</div>
                   </div>
                 </div>
+             
               </div>
             </div>
           </div>
@@ -426,20 +441,7 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Parentesco
-                </label>
-                <input
-                  type="text"
-                  name="kinship"
-                  value={form?.kinship || ""}
-                  onChange={handleChange}
-                  placeholder="Ex: Mãe, Pai, Avó..."
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
+              
 
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">E-mail</label>

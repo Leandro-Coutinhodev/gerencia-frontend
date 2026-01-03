@@ -1,6 +1,6 @@
 // src/pages/anamnesis/anamnesislist/AnamnesisList.js
 import { useEffect, useState } from "react";
-import { Pencil, Trash2, Search, Eye } from "lucide-react";
+import { Pencil, Trash2, Search, Eye, Link2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnamnesisService from "../../../services/AnamnesisService";
 import Alert from "../../../components/alert/Alert";
@@ -26,6 +26,9 @@ export default function AnamnesisList() {
   const [encaminharModalOpen, setEncaminharModalOpen] = useState(false);
   const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
   const [sending, setSending] = useState(false);
+
+  // Controle de link copiado
+  const [copiedLinkId, setCopiedLinkId] = useState(null);
 
   // Paginação
   const [page, setPage] = useState(1);
@@ -59,6 +62,27 @@ export default function AnamnesisList() {
       setPage(1);
     }
   }, [search, anamneses]);
+
+  // Copiar link da anamnese
+  const handleCopyLink = (anamnese) => {
+    if (!anamnese.link) {
+      setAlert({ type: "error", message: "Link não disponível para esta anamnese." });
+      return;
+    }
+
+    navigator.clipboard.writeText(anamnese.link).then(() => {
+      setCopiedLinkId(anamnese.id);
+      setAlert({ type: "success", message: "Link copiado para a área de transferência!" });
+      
+      // Reset do ícone após 2 segundos
+      setTimeout(() => {
+        setCopiedLinkId(null);
+      }, 2000);
+    }).catch((err) => {
+      console.error("Erro ao copiar link:", err);
+      setAlert({ type: "error", message: "Erro ao copiar link." });
+    });
+  };
 
   // Selecionar paciente para encaminhar (vindo do modal)
   const handleSelectPaciente = (paciente) => {
@@ -264,32 +288,49 @@ export default function AnamnesisList() {
                       </span>
                     </td>
 
-                    <td className="py-2 flex justify-center gap-3">
-                      <button
-                        className={`${a.status === "Encaminhada"
-                          ? "text-gray-300 cursor-not-allowed"
-                          : "text-primary hover:text-blue-800"
-                          }`}
-                        title={
-                          a.status === "Encaminhada"
-                            ? "Edição desativada para anamneses encaminhadas"
-                            : "Editar anamnese"
-                        }
-                        onClick={() => {
-                          if (a.status !== "Encaminhada") navigate(`/anamnese/edit/${a.id}`);
-                        }}
-                        disabled={a.status === "Encaminhada"}
-                      >
-                        <Pencil size={18} />
-                      </button>
+                    <td className="py-2">
+                      <div className="flex justify-center gap-3">
+                        {/* Botão Copiar Link */}
+                        <button
+                          className="text-primary hover:text-blue-800 transition-colors"
+                          title="Copiar link da anamnese"
+                          onClick={() => handleCopyLink(a)}
+                        >
+                          {copiedLinkId === a.id ? (
+                            <Check size={18} className="text-green-500" />
+                          ) : (
+                            <Link2 size={18} />
+                          )}
+                        </button>
 
+                        {/* Botão Editar */}
+                        <button
+                          className={`${a.status === "Encaminhada"
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-primary hover:text-blue-800"
+                            } transition-colors`}
+                          title={
+                            a.status === "Encaminhada"
+                              ? "Edição desativada para anamneses encaminhadas"
+                              : "Editar anamnese"
+                          }
+                          onClick={() => {
+                            if (a.status !== "Encaminhada") navigate(`/anamnese/edit/${a.id}`);
+                          }}
+                          disabled={a.status === "Encaminhada"}
+                        >
+                          <Pencil size={18} />
+                        </button>
 
-                      <button
-                        className="text-primary hover:text-blue-800"
-                        onClick={() => handleDeleteClick(a)}
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                        {/* Botão Excluir */}
+                        <button
+                          className="text-primary hover:text-blue-800 transition-colors"
+                          title="Excluir anamnese"
+                          onClick={() => handleDeleteClick(a)}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -349,10 +390,9 @@ export default function AnamnesisList() {
         </div>
       )}
 
-      {/* Conteúdo da aba "Histórico" - CORRIGIDO */}
+      {/* Conteúdo da aba "Histórico" */}
       {activeTab === "historico" && (
         <div className="bg-white rounded-xl shadow p-6">
-
           {/* Tabela */}
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="min-w-full text-sm">
@@ -394,7 +434,6 @@ export default function AnamnesisList() {
                           >
                             <Eye size={18} />
                           </button>
-
                         </div>
                       </td>
                     </tr>

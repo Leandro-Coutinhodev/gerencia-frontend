@@ -63,6 +63,18 @@ const PatientsService = {
       throw error;
     }
   },
-};
+ buscarPorNomeOuCpf: async (termo) => {
+  try {
+    const response = await api.get(`/patient/search`, {
+      params: { query: termo }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar pacientes:', error);
+    throw error;
+  }
+},}
+
+;
 
 export default PatientsService;

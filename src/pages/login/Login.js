@@ -10,8 +10,27 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [alert, setAlert] = useState(null);
-
   const navigate = useNavigate();
+
+  // Função para formatar CPF
+  const formatCPF = (value) => {
+    const numbers = value.replace(/\D/g, "");
+    const limited = numbers.slice(0, 11);
+    
+    if (limited.length <= 3) return limited;
+    if (limited.length <= 6) return `${limited.slice(0, 3)}.${limited.slice(3)}`;
+    if (limited.length <= 9)
+      return `${limited.slice(0, 3)}.${limited.slice(3, 6)}.${limited.slice(6)}`;
+    return `${limited.slice(0, 3)}.${limited.slice(3, 6)}.${limited.slice(
+      6,
+      9
+    )}-${limited.slice(9)}`;
+  };
+
+  const handleCpfChange = (e) => {
+    const formatted = formatCPF(e.target.value);
+    setCpf(formatted);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -20,13 +39,12 @@ function Login() {
     }
   }, [navigate]);
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await LoginService.login(cpf, password);
       setAlert({ type: "success", message: "Login realizado com sucesso!" });
-        navigate("/");
+      navigate("/");
     } catch (err) {
       setError("CPF ou senha inválidos.");
     }
@@ -34,7 +52,6 @@ function Login() {
 
   return (
     <div className="flex h-screen">
-     
       {/* Lado esquerdo - Logo */}
       <div className="flex flex-col justify-center items-center w-1/2 bg-blue-50">
         <img
@@ -46,7 +63,7 @@ function Login() {
 
       {/* Lado direito - Formulário */}
       <div className="flex flex-col justify-center items-center w-1/2 bg-white">
-       {/* {alert && (
+        {/* {alert && (
         <div className="flex justify-center mb-4">
           <Alert
             type={alert.type}
@@ -63,7 +80,8 @@ function Login() {
             type="text"
             placeholder="CPF"
             value={cpf}
-            onChange={(e) => setCpf(e.target.value)}
+            onChange={handleCpfChange}
+            maxLength={14}
             className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
           />
 

@@ -15,6 +15,8 @@ import AnamnesisReferralHistory from "../pages/anamnesis/anamnesisreferralhistor
 import RelatorioAnamnese from "../pages/relatorioanamnese/RelatorioAnamnese";
 import VisualizarRelatorio from "../pages/anamnesis/visualizarrelatorio/VisualizarRelatorio";
 import GenerateContract from "../pages/contract/generatecontract/GenerateContract";
+import ContractsList from "../pages/contract/contractslist/ContractsList";
+import CadastroPacientePublico from "../pages/cadastropacientepublico/CadastroPacientePublico";
 
 
 const routeConfig = [
@@ -71,6 +73,10 @@ const routeConfig = [
     },
     {
       path: '/contrato',
+      element: <ContractsList />
+    },
+    {
+      path: '/contrato/criar',
       element: <GenerateContract />
     }]
   },
@@ -81,6 +87,10 @@ const routeConfig = [
   {
     path: '/form-anamnese/:token',
     element: <AnamnesisForm />
+  },
+  {
+    path: '/form-cadastro-paciente',
+    element: <CadastroPacientePublico/>
   }
 
 ]
