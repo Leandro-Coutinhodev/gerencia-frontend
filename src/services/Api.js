@@ -1,8 +1,11 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
+import config from "../config/Config";
+
+ const host = config.URLS.HOST;
 
 const api = axios.create({
-  baseURL: "http://localhost:8080/api-gateway/gerencia",
+  baseURL: `${host}/api-gateway/gerencia`,
 });
 
 api.interceptors.request.use(
