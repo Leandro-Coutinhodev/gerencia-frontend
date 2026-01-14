@@ -222,7 +222,7 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
     // Preparar o objeto patient (sem a foto)
     const patientData = {
       name: form.name,
-      cpf: form.cpf,
+      cpf: form.cpf.trim() || null,
       dateBirth: form.dateBirth,
       kinship: form.kinship,
       guardian: {

@@ -273,7 +273,7 @@ export default function AnamnesisList() {
                     <td className="py-2">{a.guardianPhone || "-"}</td>
                     <td className="py-2">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${a.status === "Encaminhado"
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${a.status === "Encaminhada"
                             ? "bg-blue-100 text-blue-700"
                             : a.status === "Não Respondido"
                               ? "bg-red-100 text-red-700"

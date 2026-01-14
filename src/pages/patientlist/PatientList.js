@@ -4,6 +4,8 @@ import PatientsService from "../../services/PatientsService";
 import CadastroPacientesModal from "../../modal/cadastropacientesmodal/CadastroPacientesModal";
 import Alert from "../../components/alert/Alert";
 import ConfirmDialog from "../../components/confirm/ConfirmDialog";
+import config from "../../config/Config";
+
 
 function PatientList() {
   const [patients, setPatients] = useState([]);
@@ -16,6 +18,8 @@ function PatientList() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const dropdownRef = useRef(null);
+
+  const host = config.URLS.PUB;
 
   const fetchPatients = async () => {
     try {
@@ -88,7 +92,7 @@ function PatientList() {
   };
 
   const handleCopyLink = () => {
-    const link = "http://localhost:3000/form-cadastro-paciente";
+    const link = `${host}/form-cadastro-paciente`;
     navigator.clipboard.writeText(link).then(() => {
       setLinkCopied(true);
       setShowDropdown(false);

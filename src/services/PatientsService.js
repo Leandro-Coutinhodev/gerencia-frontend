@@ -27,14 +27,13 @@ const PatientsService = {
     }
   },
 
-  // ✅ CORRIGIDO: Removido o Content-Type para permitir multipart/form-data
+ 
   cadastrar: async (formData) => {
     const response = await api.post("/patient", formData);
-    // O navegador define automaticamente Content-Type: multipart/form-data
     return response.data;
   },
 
-  // ✅ CORRIGIDO: Removido o Content-Type para permitir multipart/form-data
+  
   atualizar: async (id, formData) => {
     const response = await api.put(`/patient/${id}`, formData);
     return response.data;
