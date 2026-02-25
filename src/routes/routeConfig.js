@@ -17,6 +17,7 @@ import VisualizarRelatorio from "../pages/anamnesis/visualizarrelatorio/Visualiz
 import GenerateContract from "../pages/contract/generatecontract/GenerateContract";
 import ContractsList from "../pages/contract/contractslist/ContractsList";
 import CadastroPacientePublico from "../pages/cadastropacientepublico/CadastroPacientePublico";
+import ContractSignPage from "../pages/contractsignpage/ContractSignPage";
 
 
 const routeConfig = [
@@ -91,6 +92,10 @@ const routeConfig = [
   {
     path: '/form-cadastro-paciente',
     element: <CadastroPacientePublico/>
+  },
+  {
+    path: '/contrato/:token',
+    element: <ContractSignPage/>
   }
 
 ]

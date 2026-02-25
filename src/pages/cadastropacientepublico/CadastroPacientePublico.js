@@ -446,29 +446,7 @@ function CadastroPacientePublico() {
                   )}
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Parentesco com o Responsável{" "}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="kinship"
-                    value={form.paciente.kinship}
-                    onChange={(e) => handleChange(e, "paciente")}
-                    placeholder="Ex: Filho(a), Neto(a), Sobrinho(a)..."
-                    className={`w-full border ${
-                      errors["paciente.kinship"]
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
-                  />
-                  {errors["paciente.kinship"] && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors["paciente.kinship"]}
-                    </p>
-                  )}
-                </div>
+                
 
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -501,6 +479,29 @@ function CadastroPacientePublico() {
                 Dados do Responsável
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Parentesco{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="kinship"
+                    value={form.paciente.kinship}
+                    onChange={(e) => handleChange(e, "paciente")}
+                    placeholder="Ex: Filho(a), Neto(a), Sobrinho(a)..."
+                    className={`w-full border ${
+                      errors["paciente.kinship"]
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                  />
+                  {errors["paciente.kinship"] && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors["paciente.kinship"]}
+                    </p>
+                  )}
+                </div>
                 {/* CPF com autocomplete - PRIMEIRO CAMPO */}
                 <div className="sm:col-span-2 relative">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
