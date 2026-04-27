@@ -11,6 +11,7 @@ function Dashboard() {
     const [openSubMenu, setOpenSubMenu] = useState(false);
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const userDropdownRef = useRef(null);
 
     useEffect(() => {
@@ -28,18 +29,14 @@ function Dashboard() {
         }
     }, [navigate]);
 
-    // Fechar dropdown ao clicar fora
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
                 setShowUserDropdown(false);
             }
         };
-
         document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     const handleLogoutClick = () => {
@@ -57,57 +54,108 @@ function Dashboard() {
         setShowLogoutConfirm(false);
     };
 
+    const navLinkClass = (menu) =>
+        `flex items-center p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${
+            activeMenu === menu ? "bg-blue-50 text-blue-600" : ""
+        }`;
+
     return (
         <div className="flex h-screen bg-gray-50">
             {/* Sidebar */}
-            <aside className="w-64 bg-white shadow-md flex flex-col">
+            <aside
+                className={`${
+                    sidebarOpen ? "w-64" : "w-16"
+                } bg-white shadow-md flex flex-col transition-all duration-300 overflow-hidden`}
+            >
                 {/* Cabeçalho */}
-                <div className="flex items-center justify-between p-4 h-16">
-                    <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-between p-4 h-16 min-w-0">
+                    <div className="flex items-center space-x-2 overflow-hidden">
                         <img
                             src="/assets/icone_menu/icone.png"
                             alt="icone"
-                            className="w-8 h-8 object-contain"
+                            className="w-8 h-8 object-contain shrink-0"
                         />
-                        <h1 className="text-xl font-bold tracking-tight">
-                            <span className="text-gray-800">GERENC</span>
-                            <span className="text-primary">IA</span>
-                        </h1>
+                        {sidebarOpen && (
+                            <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">
+                                <span className="text-gray-800">GERENC</span>
+                                <span className="text-primary">IA</span>
+                            </h1>
+                        )}
                     </div>
-                    <button className="p-1.5 rounded-full hover:bg-blue-50 text-primary">
-                        <ChevronLeft size={20} />
+                    <button
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="p-1.5 rounded-full hover:bg-blue-50 text-primary shrink-0"
+                    >
+                        <ChevronLeft
+                            size={20}
+                            className={`transform transition-transform duration-300 ${
+                                !sidebarOpen ? "rotate-180" : ""
+                            }`}
+                        />
                     </button>
                 </div>
 
                 {/* Navegação */}
-                <nav className="flex-1 p-4 space-y-2">
+                <nav className="flex-1 p-2 space-y-1">
                     <Link
                         to="/"
-                        className={`flex items-center p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${activeMenu === 'home' ? 'bg-blue-50 text-blue-600' : ''}`}
-                        onClick={() => setActiveMenu('home')}
+                        className={navLinkClass("home")}
+                        onClick={() => setActiveMenu("home")}
+                        title="Página Inicial"
                     >
-                        <Home size={20} className="mr-3" />
-                        Página Inicial
+                        <Home size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                        {sidebarOpen && <span>Página Inicial</span>}
                     </Link>
 
+                    {user?.scope === "ADMIN" && (
+                        <Link
+                            to="/usuarios"
+                            className={navLinkClass("users")}
+                            onClick={() => setActiveMenu("users")}
+                            title="Gerenciar Usuários"
+                        >
+                            <Users size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                            {sidebarOpen && <span>Gerenciar Usuários</span>}
+                        </Link>
+                    )}
+
+                    {/* {user?.scope === "ADMIN" && (
+                        <Link
+                            to="/aniversariantes"
+                            className={navLinkClass("birthdays")}
+                            onClick={() => setActiveMenu("birthdays")}
+                            title="Aniversariantes"
+                        >
+                            <Calendar size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                            {sidebarOpen && <span>Aniversariantes</span>}
+                        </Link>
+                    )} */}
+
                     {/* MENU GERENCIAR PACIENTES */}
-                    {user?.scope === "SECRETARY" && (
+                    {(user?.scope === "SECRETARY" || user?.scope === "ADMIN") && (
                         <div>
                             <button
-                                className={`w-full flex items-center justify-between p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${activeMenu === 'patients' ? 'bg-blue-50 text-blue-600' : ''}`}
+                                className={`w-full flex items-center justify-between p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${
+                                    activeMenu === "patients" ? "bg-blue-50 text-blue-600" : ""
+                                }`}
                                 onClick={() => setOpenSubMenu(!openSubMenu)}
+                                title="Gerenciar Pacientes"
                             >
                                 <div className="flex items-center">
-                                    <User size={20} className="mr-3" />
-                                    Gerenciar Pacientes
+                                    <User size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                                    {sidebarOpen && <span>Gerenciar Pacientes</span>}
                                 </div>
-                                <ChevronDown
-                                    size={18}
-                                    className={`transform transition-transform ${openSubMenu ? "rotate-180" : ""}`}
-                                />
+                                {sidebarOpen && (
+                                    <ChevronDown
+                                        size={18}
+                                        className={`transform transition-transform ${
+                                            openSubMenu ? "rotate-180" : ""
+                                        }`}
+                                    />
+                                )}
                             </button>
 
-                            {openSubMenu && (
+                            {openSubMenu && sidebarOpen && (
                                 <div className="ml-8 mt-1 space-y-1">
                                     <Link
                                         to="/pacientes"
@@ -123,91 +171,76 @@ function Dashboard() {
                                     </Link>
                                 </div>
                             )}
-                            <Link
-                            to="/contrato"
-                            className={`flex items-center p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${activeMenu === 'users' ? 'bg-blue-50 text-blue-600' : ''}`}
-                            onClick={() => setActiveMenu('users')}
-                        >
-                            <FileText size={20} className="mr-3" />
-                            Contrato
-                        </Link>
+
+                            {/* <Link
+                                to="/contrato"
+                                className={navLinkClass("contrato")}
+                                onClick={() => setActiveMenu("contrato")}
+                                title="Contrato"
+                            >
+                                <FileText size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                                {sidebarOpen && <span>Contrato</span>}
+                            </Link> */}
                         </div>
                     )}
 
-                    {user?.scope === "ADMIN" && (
-                        <Link
-                            to="/usuarios"
-                            className={`flex items-center p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${activeMenu === 'users' ? 'bg-blue-50 text-blue-600' : ''}`}
-                            onClick={() => setActiveMenu('users')}
-                        >
-                            <Users size={20} className="mr-3" />
-                            Gerenciar Usuários
-                        </Link>
-                    )}
-
-                    {user?.scope === "ADMIN" && (
-                        <Link
-                            to="/aniversariantes"
-                            className={`flex items-center p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${activeMenu === 'birthdays' ? 'bg-blue-50 text-blue-600' : ''}`}
-                            onClick={() => setActiveMenu('birthdays')}
-                        >
-                            <Calendar size={20} className="mr-3" />
-                            Aniversariantes
-                        </Link>
-                    )}
-
-                    {user?.scope === "PROFESSIONAL" && (
+                    {(user?.scope === "PROFESSIONAL" || user?.scope === "ADMIN") && (
                         <Link
                             to="/paciente/encaminhar"
-                            className={`flex items-center p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${activeMenu === 'birthdays' ? 'bg-blue-50 text-blue-600' : ''}`}
-                            onClick={() => setActiveMenu('birthdays')}
+                            className={navLinkClass("encaminhar")}
+                            onClick={() => setActiveMenu("encaminhar")}
+                            title="Encaminhar paciente"
                         >
-                           <Send className="mr-3" size={18} /> Encaminhar paciente
+                            <Send size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                            {sidebarOpen && <span>Encaminhar paciente</span>}
                         </Link>
                     )}
-                    {user?.scope === "ASSISTANT" && (
+
+                    {(user?.scope === "ASSISTANT" || user?.scope === "ADMIN") && (
                         <Link
                             to="/relatorios"
-                            className={`flex items-center p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${activeMenu === 'birthdays' ? 'bg-blue-50 text-blue-600' : ''}`}
-                            onClick={() => setActiveMenu('birthdays')}
+                            className={navLinkClass("relatorios")}
+                            onClick={() => setActiveMenu("relatorios")}
+                            title="Relatório de Anamnese"
                         >
-                        {/* <Send className="mr-3" size={18}/>Relatórios */}
-                        Relatório de Anamnese
+                            <FileText size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                            {sidebarOpen && <span>Relatório de Anamnese</span>}
                         </Link>
                     )}
                 </nav>
             </aside>
 
             {/* Conteúdo principal */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0">
                 <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-6">
-                    {/* Menu do Usuário com Dropdown */}
                     <div className="relative" ref={userDropdownRef}>
                         <button
                             onClick={() => setShowUserDropdown(!showUserDropdown)}
                             className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
                         >
                             <UserCircle2 size={28} className="text-gray-500" />
-                            <span className="text-sm font-medium text-gray-700">Olá, {user?.name}</span>
-                            <ChevronDown 
-                                size={16} 
-                                className={`text-gray-500 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}
+                            <span className="text-sm font-medium text-gray-700">
+                                Olá, {user?.name}
+                            </span>
+                            <ChevronDown
+                                size={16}
+                                className={`text-gray-500 transition-transform ${
+                                    showUserDropdown ? "rotate-180" : ""
+                                }`}
                             />
                         </button>
 
-                        {/* Dropdown Menu */}
                         {showUserDropdown && (
                             <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                                 <div className="px-4 py-3 border-b border-gray-100">
                                     <p className="text-sm font-medium text-gray-900">{user?.name}</p>
                                     <p className="text-xs text-gray-500 mt-0.5">
-                                        {user?.scope === "ADMIN" && "Administrador"}
+                                        {user?.scope === "ADMIN" && "Gestor"}
                                         {user?.scope === "SECRETARY" && "Secretária"}
                                         {user?.scope === "PROFESSIONAL" && "Profissional"}
                                         {user?.scope === "ASSISTANT" && "Assistente"}
                                     </p>
                                 </div>
-
                                 <button
                                     onClick={handleLogoutClick}
                                     className="w-full px-4 py-2.5 text-left hover:bg-red-50 transition flex items-center gap-3 text-red-600 font-medium"

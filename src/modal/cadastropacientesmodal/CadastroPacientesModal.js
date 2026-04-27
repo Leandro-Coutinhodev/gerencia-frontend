@@ -242,11 +242,6 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
       return;
     }
     
-    if (!form.guardian?.dateBirth) {
-      alert("Por favor, preencha a data de nascimento do responsável.");
-      return;
-    }
-    
     if (!form.guardian?.email || !form.guardian.email.trim()) {
       alert("Por favor, preencha o e-mail do responsável.");
       return;
@@ -469,7 +464,7 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Data de Nascimento <span className="text-red-500">*</span>
+                    Data de Nascimento
                   </label>
                   <input
                     type="date"
@@ -477,7 +472,6 @@ function CadastroPacientesModal({ isOpen, onClose, onSave, initialData }) {
                     value={form.guardian?.dateBirth || ""}
                     onChange={handleChange}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
                   />
                 </div>
 

@@ -288,7 +288,7 @@ function CadastroUsuariosModal({ isOpen, onClose, onSave, initialData }) {
               required
             >
               <option value="">Selecione</option>
-              <option value="ADMIN">Administrador</option>
+              <option value="ADMIN">Gestor</option>
               <option value="PROFESSIONAL">Profissional</option>
               <option value="SECRETARY">Secretário(a)</option>
               <option value="ASSISTANT">Assistente</option>

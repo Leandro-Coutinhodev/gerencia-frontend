@@ -253,8 +253,6 @@ export default function AnamnesisList() {
               <tr className="text-left text-gray-600 border-b">
                 <th className="pb-2">Nome</th>
                 <th className="pb-2">Data da entrevista</th>
-                <th className="pb-2">Responsável</th>
-                <th className="pb-2">Telefone</th>
                 <th className="pb-2">Status</th>
                 <th className="pb-2 text-center">Ações</th>
               </tr>
@@ -269,8 +267,6 @@ export default function AnamnesisList() {
                         ? new Date(a.interviewDate).toLocaleDateString("pt-BR")
                         : "-"}
                     </td>
-                    <td className="py-2">{a.guardianName || "-"}</td>
-                    <td className="py-2">{a.guardianPhone || "-"}</td>
                     <td className="py-2">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${a.status === "Encaminhada"

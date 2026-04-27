@@ -18,6 +18,8 @@ import GenerateContract from "../pages/contract/generatecontract/GenerateContrac
 import ContractsList from "../pages/contract/contractslist/ContractsList";
 import CadastroPacientePublico from "../pages/cadastropacientepublico/CadastroPacientePublico";
 import ContractSignPage from "../pages/contractsignpage/ContractSignPage";
+import ForgotPassword from "../pages/forgotpassword/ForgotPassword";
+import ResetPassword from "../pages/forgotpassword/ResetPassword";
 
 
 const routeConfig = [
@@ -96,6 +98,14 @@ const routeConfig = [
   {
     path: '/contrato/:token',
     element: <ContractSignPage/>
+  },
+  {
+    path: '/recuperar-senha',
+    element: <ForgotPassword/>
+  },
+  {
+    path: '/restaurar-senha',
+    element: <ResetPassword/>
   }
 
 ]

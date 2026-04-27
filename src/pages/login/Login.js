@@ -3,6 +3,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import LoginService from "../../services/LoginService";
 import Alert from "../../components/alert/Alert";
+import { Link } from "react-router-dom";
 
 function Login() {
   const [cpf, setCpf] = useState("");
@@ -16,7 +17,7 @@ function Login() {
   const formatCPF = (value) => {
     const numbers = value.replace(/\D/g, "");
     const limited = numbers.slice(0, 11);
-    
+
     if (limited.length <= 3) return limited;
     if (limited.length <= 6) return `${limited.slice(0, 3)}.${limited.slice(3)}`;
     if (limited.length <= 9)
@@ -76,38 +77,48 @@ function Login() {
         <h2 className="text-4xl font-semibold mb-8">Acesse sua Conta</h2>
 
         <form className="w-80 space-y-4" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="CPF"
-            value={cpf}
-            onChange={handleCpfChange}
-            maxLength={14}
-            className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-
-          <div className="relative">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cpf:
+            </label>
             <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Senha"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none pr-10"
+              type="text"
+              placeholder="CPF"
+              value={cpf}
+              onChange={handleCpfChange}
+              maxLength={14}
+              className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-3 flex items-center text-gray-500"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Senha:
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <div className="flex justify-start">
-            <a href="#" className="text-primary text-sm hover:underline">
+            <Link to="/recuperar-senha" className="text-blue-500 text-sm">
               Esqueceu a senha?
-            </a>
+            </Link>
           </div>
 
           <button

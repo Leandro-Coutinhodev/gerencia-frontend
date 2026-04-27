@@ -97,7 +97,7 @@ function PatientList() {
       setLinkCopied(true);
       setShowDropdown(false);
       setAlert({ type: "success", message: "Link copiado para a área de transferência!" });
-      
+
       // Reset do ícone após 2 segundos
       setTimeout(() => {
         setLinkCopied(false);
@@ -136,7 +136,7 @@ function PatientList() {
 
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Pacientes Cadastrados</h2>
-        
+
         {/* Dropdown Button */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -144,8 +144,8 @@ function PatientList() {
             onClick={() => setShowDropdown(!showDropdown)}
           >
             + Cadastrar Paciente
-            <ChevronDown 
-              size={18} 
+            <ChevronDown
+              size={18}
               className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`}
             />
           </button>
@@ -191,7 +191,6 @@ function PatientList() {
             <tr className="bg-gray-100 text-left text-gray-600">
               <th className="py-2 px-4 text-primary">Nome</th>
               <th className="py-2 px-4 text-primary">CPF</th>
-              <th className="py-2 px-4 text-primary">Data de Nascimento</th>
               <th className="py-2 px-4 text-primary">Responsável</th>
               <th className="py-2 px-4 text-primary">Telefone</th>
               <th className="py-2 px-4 text-center text-primary">Ações</th>
@@ -206,9 +205,6 @@ function PatientList() {
                 >
                   <td className="py-2 px-4">{patient.name}</td>
                   <td className="py-2 px-4">{patient.cpf}</td>
-                  <td className="py-2 px-4">
-                    {new Date(patient.dateBirth).toLocaleDateString("pt-BR")}
-                  </td>
                   <td className="py-2 px-4">{patient.guardian?.name || "-"}</td>
                   <td className="py-2 px-4">{patient.guardian?.phoneNumber1 || "-"}</td>
                   <td className="py-2 px-4 flex justify-center gap-3">
@@ -259,7 +255,7 @@ function PatientList() {
         title="Excluir Paciente"
         message={
           patientToDelete
-            ? `Tem certeza que deseja excluir o paciente ${patientToDelete.name}?`
+            ? `Você está prestes a excluir o paciente ${patientToDelete.name}.\n\n⚠️ Esta ação é permanente e não pode ser desfeita.\n\nTodos os dados relacionados serão removidos, incluindo anamneses, relatórios e contratos.\n\nDeseja realmente continuar?`
             : ""
         }
         onConfirm={handleDelete}
