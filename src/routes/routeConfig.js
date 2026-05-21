@@ -20,6 +20,7 @@ import CadastroPacientePublico from "../pages/cadastropacientepublico/CadastroPa
 import ContractSignPage from "../pages/contractsignpage/ContractSignPage";
 import ForgotPassword from "../pages/forgotpassword/ForgotPassword";
 import ResetPassword from "../pages/forgotpassword/ResetPassword";
+import AnamnesisModelList from "../pages/anamnesis/anamnesismodellist/AnamnesisModelList";
 
 
 const routeConfig = [
@@ -41,6 +42,11 @@ const routeConfig = [
     {
       path: '/anamnese',
       element: <AnamnesisList />
+    },
+    {
+      path: '/anamnese/modelo',
+      element: <AnamnesisModelList/>
+
     },
     {
       path: '/anamnese/historico/:patientId',

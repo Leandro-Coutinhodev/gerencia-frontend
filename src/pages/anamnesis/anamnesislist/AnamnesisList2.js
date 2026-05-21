@@ -108,21 +108,19 @@ export default function AnamnesisList2() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div className="bg-white p-1 rounded-lg shadow-sm flex w-full sm:w-auto overflow-x-auto">
           <button
-            className={`flex-shrink-0 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md whitespace-nowrap ${
-              activeTab === "anamneses"
+            className={`flex-shrink-0 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "anamneses"
                 ? "bg-blue-50 text-blue-700 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
             onClick={() => setActiveTab("anamneses")}
           >
             Anamneses cadastradas
           </button>
           <button
-            className={`flex-shrink-0 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md whitespace-nowrap ${
-              activeTab === "referrals"
+            className={`flex-shrink-0 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "referrals"
                 ? "bg-blue-50 text-blue-700 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
             onClick={() => setActiveTab("referrals")}
           >
             Histórico de encaminhamento
@@ -192,29 +190,29 @@ export default function AnamnesisList2() {
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            item.status === "Encaminhada"
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${item.status === "Encaminhada"
                               ? "bg-blue-100 text-blue-700"
                               : item.status === "Não Respondido"
-                              ? "bg-red-100 text-red-700"
-                              : item.status === "Em Análise"
-                              ? "bg-amber-100 text-amber-700"
-                              : item.status === "Pronto"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
+                                ? "bg-red-100 text-red-700"
+                                : item.status === "Análise"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : item.status === "Pronto"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-gray-100 text-gray-600"
+                            }`}
                         >
-                          {item.status}
+                          {item.status === "Análise"
+                            ? "Em Análise"
+                            : item.status}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex justify-center gap-3">
                           <button
-                            className={`${
-                              item.status === "Pronto"
+                            className={`${item.status === "Pronto"
                                 ? "text-blue-600 hover:text-blue-800"
                                 : "text-gray-400 cursor-not-allowed"
-                            }`}
+                              }`}
                             title={
                               item.status === "Pronto"
                                 ? "Encaminhar anamnese"

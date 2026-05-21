@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown, Send, FileText, LogOut } from "lucide-react";
+import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown, Send, FileText, LogOut, Form, FormInput, LayoutGrid } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { jwtDecode } from "jwt-decode";
 import ConfirmDialog from "../../components/confirm/ConfirmDialog";
@@ -181,6 +181,15 @@ function Dashboard() {
                                 <FileText size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
                                 {sidebarOpen && <span>Contrato</span>}
                             </Link> */}
+                            <Link
+                                to="/anamnese/modelo"
+                                className={navLinkClass("modelos")}
+                                onClick={() => setActiveMenu("modelos")}
+                                title="Modelos de anamnese"
+                            >
+                                <LayoutGrid size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                                {sidebarOpen && <span>Modelos de Anamnese</span>}
+                            </Link>
                         </div>
                     )}
 

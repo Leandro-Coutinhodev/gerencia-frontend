@@ -21,7 +21,7 @@ export default function AnamnesisList() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [anamneseToDelete, setAnamneseToDelete] = useState(null);
 
-  // fluxo encaminhar
+  // Fluxo encaminhar
   const [buscarModalOpen, setBuscarModalOpen] = useState(false);
   const [encaminharModalOpen, setEncaminharModalOpen] = useState(false);
   const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
@@ -33,6 +33,8 @@ export default function AnamnesisList() {
   // Paginação
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+
+  // ── Fetch ───────────────────────────────────────────────────────────────────
 
   const fetchAnamneses = async () => {
     try {
@@ -50,7 +52,8 @@ export default function AnamnesisList() {
     fetchAnamneses();
   }, []);
 
-  // Filtrar pacientes pelo nome
+  // ── Filtro de busca ──────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!search) {
       setFiltered(anamneses);
@@ -63,7 +66,8 @@ export default function AnamnesisList() {
     }
   }, [search, anamneses]);
 
-  // Copiar link da anamnese
+  // ── Copiar link ──────────────────────────────────────────────────────────────
+
   const handleCopyLink = (anamnese) => {
     if (!anamnese.link) {
       setAlert({ type: "error", message: "Link não disponível para esta anamnese." });
@@ -73,46 +77,51 @@ export default function AnamnesisList() {
     navigator.clipboard.writeText(anamnese.link).then(() => {
       setCopiedLinkId(anamnese.id);
       setAlert({ type: "success", message: "Link copiado para a área de transferência!" });
-      
-      // Reset do ícone após 2 segundos
-      setTimeout(() => {
-        setCopiedLinkId(null);
-      }, 2000);
-    }).catch((err) => {
-      console.error("Erro ao copiar link:", err);
+      setTimeout(() => setCopiedLinkId(null), 2000);
+    }).catch(() => {
       setAlert({ type: "error", message: "Erro ao copiar link." });
     });
   };
 
-  // Selecionar paciente para encaminhar (vindo do modal)
+  // ── Fluxo de encaminhamento ──────────────────────────────────────────────────
+
+  // 1. Paciente selecionado no BuscarPacienteModal → abre EncaminharAnamneseModal
   const handleSelectPaciente = (paciente) => {
     setPacienteSelecionado(paciente);
     setBuscarModalOpen(false);
     setEncaminharModalOpen(true);
   };
 
-  // Confirmar e cadastrar anamnese mínima (encaminhar)
-  const handleEncaminharConfirm = async (paciente) => {
-    if (!paciente) return;
+  // 2. Confirmação no EncaminharAnamneseModal → agora recebe templateId também
+  const handleEncaminharConfirm = async (paciente, templateId) => {
+    if (!paciente || !templateId) return;
+
     setSending(true);
     try {
-      await AnamnesisService.cadastrar({ patientId: paciente.id });
+      await AnamnesisService.cadastrar({
+        patientId: paciente.id,
+        templateId,
+      });
+
       setAlert({
         type: "success",
         message: `Anamnese encaminhada para ${paciente.name || paciente.nome}!`,
       });
+
       await fetchAnamneses();
       setEncaminharModalOpen(false);
       setPacienteSelecionado(null);
     } catch (error) {
       console.error("Erro ao encaminhar:", error);
-      setAlert({ type: "error", message: "Erro ao encaminhar anamnese." });
+      const message = error.response?.data?.message || "Erro ao encaminhar anamnese.";
+      setAlert({ type: "error", message });
     } finally {
       setSending(false);
     }
   };
 
-  // Excluir
+  // ── Exclusão ─────────────────────────────────────────────────────────────────
+
   const handleDeleteClick = (anamnese) => {
     setAnamneseToDelete(anamnese);
     setConfirmOpen(true);
@@ -132,23 +141,24 @@ export default function AnamnesisList() {
     }
   };
 
-  if (loading)
-    return <p className="text-center text-gray-500">Carregando anamneses...</p>;
+  // ── Paginação ─────────────────────────────────────────────────────────────────
 
-  // Paginação simples
   const totalPages = Math.ceil(filtered.length / perPage);
   const startIndex = (page - 1) * perPage;
   const currentPageData = filtered.slice(startIndex, startIndex + perPage);
 
+  // ── Agrupamento por paciente (aba Histórico) ───────────────────────────────
+
   const anamnesesAgrupadas = Object.values(
     anamneses.reduce((acc, a) => {
-      const id = a.patient?.id || a.patientId;
+      const id = a.patientId;
       if (!acc[id]) {
         acc[id] = {
           id,
-          nome: a.patient?.name || a.patientName || "—",
-          responsavel: a.guardianName || "—",
-          dataResposta: new Date(a.interviewDate).toLocaleDateString("pt-BR"),
+          nome: a.patientName || "—",
+          dataResposta: a.interviewDate
+            ? new Date(a.interviewDate).toLocaleDateString("pt-BR")
+            : "-",
           totalAnamneses: 0,
         };
       }
@@ -157,14 +167,33 @@ export default function AnamnesisList() {
     }, {})
   );
 
-  // Filtrar anamneses agrupadas para a aba histórico
-  const anamnesesAgrupadasFiltradas = anamnesesAgrupadas.filter(paciente =>
-    paciente.nome.toLowerCase().includes(search.toLowerCase())
+  const anamnesesAgrupadasFiltradas = anamnesesAgrupadas.filter((p) =>
+    p.nome.toLowerCase().includes(search.toLowerCase())
   );
+
+  // ── Badge de status ──────────────────────────────────────────────────────────
+
+  const statusBadge = (status) => {
+    const map = {
+      Encaminhada: { label: "Encaminhada",   cls: "bg-blue-100 text-blue-700" },
+      Pronto: { label: "Pronto",    cls: "bg-green-100 text-green-700" },
+      Análise: { label: "Em Análise",    cls: "bg-amber-100 text-amber-700" },
+    };
+    const entry = map[status] || { label: status || "-", cls: "bg-gray-100 text-gray-600" };
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${entry.cls}`}>
+        {entry.label}
+      </span>
+    );
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+
+  if (loading)
+    return <p className="text-center text-gray-500">Carregando anamneses...</p>;
 
   return (
     <div className="p-6">
-      {/* Alertas */}
       {alert && (
         <div className="flex justify-center mb-4">
           <Alert
@@ -180,12 +209,13 @@ export default function AnamnesisList() {
         Página Inicial &gt; Encaminhar Anamnese
       </div>
 
-      {/* Cabeçalho: Título (esq) + Botão Encaminhar (dir) - mesma linha */}
+      {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Anamneses</h2>
 
         <button
-          className="bg-primary text-white px-5 py-2 rounded-full hover:bg-primary/90 transition flex items-center gap-2 shadow-sm"
+          className="bg-primary text-white px-5 py-2 rounded-full hover:bg-primary/90
+            transition flex items-center gap-2 shadow-sm"
           onClick={() => setBuscarModalOpen(true)}
         >
           <svg
@@ -198,60 +228,51 @@ export default function AnamnesisList() {
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 8l16-5-5 16-2-7-7-2z" />
           </svg>
-          <span>Encaminhar Anamnese</span>
+          Encaminhar Anamnese
         </button>
       </div>
 
-      {/* Linha abaixo do cabeçalho: Tabs (esq) e Campo de busca (dir) — mesma linha, acima da tabela */}
+      {/* Tabs + Busca */}
       <div className="flex items-center justify-between mb-3">
-        {/* Tabs à esquerda */}
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setActiveTab("encaminhada")}
-            className={`px-4 py-2 font-medium rounded-t-lg ${activeTab === "encaminhada"
-              ? "border-b-2 border-primary text-primary"
-              : "text-gray-500"
-              }`}
-          >
-            Anamnese encaminhada
-          </button>
-
-          <button
-            onClick={() => setActiveTab("historico")}
-            className={`px-4 py-2 font-medium rounded-t-lg ${activeTab === "historico"
-              ? "border-b-2 border-primary text-primary"
-              : "text-gray-500"
-              }`}
-          >
-            Histórico
-          </button>
+          {["encaminhada", "historico"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 font-medium rounded-t-lg transition
+                ${activeTab === tab
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-gray-500 hover:text-gray-700"}`}
+            >
+              {tab === "encaminhada" ? "Anamnese encaminhada" : "Histórico"}
+            </button>
+          ))}
         </div>
 
-        {/* Campo de busca à direita */}
-        <div className="flex items-center">
-          <div className="relative w-80">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Buscar paciente"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
+        <div className="relative w-80">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            placeholder="Buscar paciente"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full text-sm
+              focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
         </div>
       </div>
 
-      {/* Conteúdo da aba "Anamnese encaminhada" */}
+      {/* ── Aba Encaminhada ── */}
       {activeTab === "encaminhada" && (
         <div className="bg-white rounded-xl shadow p-4">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="text-left text-gray-600 border-b">
                 <th className="pb-2">Nome</th>
+                <th className="pb-2">Modelo</th>
                 <th className="pb-2">Data da entrevista</th>
                 <th className="pb-2">Status</th>
                 <th className="pb-2 text-center">Ações</th>
@@ -262,35 +283,23 @@ export default function AnamnesisList() {
                 currentPageData.map((a) => (
                   <tr key={a.id} className="border-t hover:bg-gray-50">
                     <td className="py-2">{a.patientName}</td>
+                    <td className="py-2 text-gray-500 text-xs">
+                      {a.template?.name || "-"}
+                    </td>
                     <td className="py-2">
                       {a.interviewDate
                         ? new Date(a.interviewDate).toLocaleDateString("pt-BR")
                         : "-"}
                     </td>
-                    <td className="py-2">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${a.status === "Encaminhada"
-                            ? "bg-blue-100 text-blue-700"
-                            : a.status === "Não Respondido"
-                              ? "bg-red-100 text-red-700"
-                              : a.status === "Em Análise"
-                                ? "bg-amber-100 text-amber-700"
-                                : a.status === "Pronto"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-gray-100 text-gray-600"
-                          }`}
-                      >
-                        {a.status}
-                      </span>
-                    </td>
-
+                    <td className="py-2">{statusBadge(a.status)}</td>
                     <td className="py-2">
                       <div className="flex justify-center gap-3">
-                        {/* Botão Copiar Link */}
+
+                        {/* Copiar link */}
                         <button
-                          className="text-primary hover:text-blue-800 transition-colors"
                           title="Copiar link da anamnese"
                           onClick={() => handleCopyLink(a)}
+                          className="text-primary hover:text-blue-800 transition-colors"
                         >
                           {copiedLinkId === a.id ? (
                             <Check size={18} className="text-green-500" />
@@ -299,30 +308,31 @@ export default function AnamnesisList() {
                           )}
                         </button>
 
-                        {/* Botão Editar */}
+                        {/* Editar — desabilitado enquanto status 'E' (ainda não respondida) */}
                         <button
-                          className={`${a.status === "Encaminhada"
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "text-primary hover:text-blue-800"
-                            } transition-colors`}
                           title={
-                            a.status === "Encaminhada"
-                              ? "Edição desativada para anamneses encaminhadas"
+                            a.status === "E"
+                              ? "Edição disponível após o responsável responder"
                               : "Editar anamnese"
                           }
                           onClick={() => {
-                            if (a.status !== "Encaminhada") navigate(`/anamnese/edit/${a.id}`);
+                            if (a.status !== "E") navigate(`/anamnese/edit/${a.id}`);
                           }}
-                          disabled={a.status === "Encaminhada"}
+                          disabled={a.status === "E"}
+                          className={`transition-colors ${
+                            a.status === "E"
+                              ? "text-gray-300 cursor-not-allowed"
+                              : "text-primary hover:text-blue-800"
+                          }`}
                         >
                           <Pencil size={18} />
                         </button>
 
-                        {/* Botão Excluir */}
+                        {/* Excluir */}
                         <button
-                          className="text-primary hover:text-blue-800 transition-colors"
                           title="Excluir anamnese"
                           onClick={() => handleDeleteClick(a)}
+                          className="text-primary hover:text-blue-800 transition-colors"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -332,7 +342,7 @@ export default function AnamnesisList() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-gray-500">
+                  <td colSpan="5" className="text-center py-4 text-gray-500">
                     Nenhuma anamnese encontrada.
                   </td>
                 </tr>
@@ -346,65 +356,53 @@ export default function AnamnesisList() {
               <span>Exibir</span>
               <select
                 value={perPage}
-                onChange={(e) => {
-                  setPerPage(Number(e.target.value));
-                  setPage(1);
-                }}
+                onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
                 className="border rounded px-2 py-1"
               >
-                {[10, 20, 30].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
+                {[10, 20, 30].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
-
               <span>
-                {startIndex + 1}-{Math.min(startIndex + perPage, filtered.length)} de{" "}
+                {startIndex + 1}–{Math.min(startIndex + perPage, filtered.length)} de{" "}
                 {filtered.length} itens
               </span>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-2 py-1 border rounded disabled:opacity-50"
-              >
-                ←
-              </button>
+              >←</button>
               <span>Página {page}</span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
+                disabled={page === totalPages || totalPages === 0}
                 className="px-2 py-1 border rounded disabled:opacity-50"
-              >
-                →
-              </button>
+              >→</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Conteúdo da aba "Histórico" */}
+      {/* ── Aba Histórico ── */}
       {activeTab === "historico" && (
         <div className="bg-white rounded-xl shadow p-6">
-          {/* Tabela */}
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr className="text-left text-gray-600">
                   <th className="py-3 px-4 font-medium">Nome</th>
                   <th className="py-3 px-4 font-medium">Data da Resposta</th>
-                  <th className="py-3 px-4 font-medium">Responsável</th>
-                  <th className="py-3 px-4 font-medium text-center">Total de anamnese</th>
+                  <th className="py-3 px-4 font-medium text-center">
+                    Total de anamneses
+                  </th>
                   <th className="py-3 px-4 font-medium text-center">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {anamnesesAgrupadasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="text-center py-6 text-gray-500">
+                    <td colSpan="4" className="text-center py-6 text-gray-500">
                       Nenhum histórico encontrado.
                     </td>
                   </tr>
@@ -416,17 +414,18 @@ export default function AnamnesisList() {
                     >
                       <td className="py-3 px-4">{paciente.nome}</td>
                       <td className="py-3 px-4">{paciente.dataResposta}</td>
-                      <td className="py-3 px-4">{paciente.responsavel}</td>
                       <td className="py-3 px-4 text-center font-medium">
                         {paciente.totalAnamneses} anamnese
                         {paciente.totalAnamneses > 1 ? "s" : ""}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <div className="flex justify-center gap-3">
+                        <div className="flex justify-center">
                           <button
-                            className="text-primary hover:text-primary/70 transition"
                             title="Visualizar histórico"
-                            onClick={() => navigate(`/anamnese/historico/${paciente.id}`)}
+                            onClick={() =>
+                              navigate(`/anamnese/historico/${paciente.id}`)
+                            }
+                            className="text-primary hover:text-primary/70 transition"
                           >
                             <Eye size={18} />
                           </button>
@@ -439,53 +438,43 @@ export default function AnamnesisList() {
             </table>
           </div>
 
-          {/* Paginação simulada */}
+          {/* Paginação histórico */}
           <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <span>Exibir</span>
               <select
                 value={perPage}
-                onChange={(e) => {
-                  setPerPage(Number(e.target.value));
-                  setPage(1);
-                }}
+                onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
                 className="border rounded px-2 py-1"
               >
-                {[10, 20, 30].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
+                {[10, 20, 30].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
-
               <span>
-                {startIndex + 1}-{Math.min(startIndex + perPage, filtered.length)} de{" "}
-                {filtered.length} itens
+                {startIndex + 1}–{Math.min(startIndex + perPage, anamnesesAgrupadasFiltradas.length)} de{" "}
+                {anamnesesAgrupadasFiltradas.length} itens
               </span>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-2 py-1 border rounded disabled:opacity-50"
-              >
-                ←
-              </button>
+              >←</button>
               <span>Página {page}</span>
               <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
+                onClick={() => setPage((p) =>
+                  Math.min(Math.ceil(anamnesesAgrupadasFiltradas.length / perPage), p + 1)
+                )}
+                disabled={page >= Math.ceil(anamnesesAgrupadasFiltradas.length / perPage)}
                 className="px-2 py-1 border rounded disabled:opacity-50"
-              >
-                →
-              </button>
+              >→</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modais */}
+      {/* ── Modais ── */}
       <BuscarPacienteModal
         isOpen={buscarModalOpen}
         onClose={() => setBuscarModalOpen(false)}

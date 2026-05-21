@@ -1,127 +1,94 @@
-// src/services/AnamnesisService.js
 import api from "./Api";
 
 const AnamnesisService = {
-  // Criar/Atualizar anamnese (usado no fluxo autenticado)
-  criar: async (anamneseId, dados, reports = []) => {
-    try {
-      const formData = new FormData();
 
-      formData.append(
-        "anamnesis",
-        new Blob([JSON.stringify(dados)], { type: "application/json" })
-      );
-
-      if (Array.isArray(reports) && reports.length > 0) {
-        reports.forEach((file) => {
-          formData.append("reports", file);
-        });
-      }
-
-      const response = await api.put(`/anamnesis/${anamneseId}/response`, formData);
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao salvar anamnese:", error);
-      throw error;
-    }
-  },
-
-  // ✅ NOVO: Método para responder anamnese via formulário público
-  responderAnamnese: async (id, formData) => {
-    try {
-      const response = await api.put(`/anamnesis/${id}/response`, formData);
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao responder anamnese:", error);
-      throw error;
-    }
-  },
-
-  cadastrar: async (data) => {
-    const response = await api.post("/anamnesis", data, {
+  
+  cadastrar: async ({ patientId, templateId }) => {
+    const response = await api.post("/anamnesis", { patientId, templateId }, {
       headers: { "Content-Type": "application/json" },
     });
     return response.data;
   },
 
-  listarPorPaciente: async (patientId) => {
-    try {
-      const response = await api.get(`/anamnesis/bypatient/${patientId}`);
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao listar anamneses do paciente:", error);
-      throw error;
-    }
+  // ─── Resposta do paciente ────────────────────────────────────────────────────
+
+  // Responde uma anamnese com answers (texto/data/checkbox) + arquivos PDF opcionais.
+  // answers: [{ fieldId, value }]
+  // files:   [{ fieldId, file }] → cada File é adicionado ao multipart como "file_{fieldId}"
+  responderAnamnese: async (anamnesisId, answers, files = []) => {
+    const formData = new FormData();
+
+    formData.append(
+      "answers",
+      new Blob([JSON.stringify({ answers })], { type: "application/json" })
+    );
+
+    files.forEach(({ fieldId, file }) => {
+      // Convenção esperada pelo backend: nome do part = "file_{fieldId}"
+      formData.append(`file_${fieldId}`, file, file.name);
+    });
+
+    const response = await api.put(`/anamnesis/${anamnesisId}/response`, formData);
+    return response.data;
   },
 
+  // ─── Leitura ─────────────────────────────────────────────────────────────────
+
   listar: async () => {
-    try {
-      const response = await api.get("/anamnesis");
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao listar todas as anamneses:", error);
-      throw error;
-    }
+    const response = await api.get("/anamnesis");
+    console.log(response.data);
+    return response.data;
+  },
+
+  listarPorPaciente: async (patientId) => {
+    const response = await api.get(`/anamnesis/bypatient/${patientId}`);
+    return response.data;
   },
 
   buscarPorId: async (id) => {
-    try {
-      const response = await api.get(`/anamnesis/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao buscar anamnese:", error);
-      throw error;
-    }
+    const response = await api.get(`/anamnesis/${id}`);
+    return response.data;
   },
 
-  atualizar: async (id, dados, report = null) => {
-    try {
-      const formData = new FormData();
-
-      formData.append("anamnesis", new Blob([JSON.stringify(dados)], {
-        type: "application/json"
-      }));
-
-      if (report) {
-        formData.append("report", report);
-      }
-
-      const response = await api.put(`/anamnesis/${id}`, formData);
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao atualizar anamnese:", error);
-      throw error;
-    }
-  },
-
+  // Retorna AnamnesisFormDTO: { anamnesisId, status, patientName, template, existingAnswers, formLink }
   buscarPorToken: async (token) => {
-    try {
-      const response = await api.get(`/anamnesis/form/${token}`);
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao buscar anamnese pelo token:", error);
-      throw error;
-    }
+    const response = await api.get(`/anamnesis/form/${token}`);
+    return response.data;
   },
+
+  // Busca o arquivo PDF de um campo específico da anamnese
+  buscarArquivoCampo: async (anamnesisId, fieldId) => {
+    const response = await api.get(`/anamnesis/${anamnesisId}/field/${fieldId}/file`, {
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
+  // ─── Remoção ──────────────────────────────────────────────────────────────────
 
   deletar: async (id) => {
-    try {
-      const response = await api.delete(`/anamnesis/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao deletar anamnese:", error);
-      throw error;
-    }
+    const response = await api.delete(`/anamnesis/${id}`);
+    return response.data;
   },
+
+  // ─── Geração de link ──────────────────────────────────────────────────────────
+
+  // Gera e retorna o link público da anamnese (string com URL completa)
+  gerarLink: async ({ patientId, templateId }) => {
+    const response = await api.post("/anamnesis/link", { patientId, templateId }, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return response.data; // string: "https://host/formulario?token=xxx"
+  },
+
+  // ─── Referral (inalterado) ────────────────────────────────────────────────────
 
   sendReferral: async (data) => {
     return api.post("/anamnesis/referral", data);
   },
 
   assignAssistantToReferral: async (referralId, assistantId) => {
-    return api.put(`/anamnesis/referral/${referralId}/assign-assistant`, {
-      assistantId: assistantId
-    });
+    return api.put(`/anamnesis/referral/${referralId}/assign-assistant`, { assistantId });
   },
 
   getReferralByAnamnesis: async (anamnesisId) => {
@@ -130,25 +97,16 @@ const AnamnesisService = {
   },
 
   assignAssistant: async (referralId, assistantId) => {
-    return api.put(`/anamnesis/referral/${referralId}/assign-assistant`, {
-      assistantId,
-    });
+    return api.put(`/anamnesis/referral/${referralId}/assign-assistant`, { assistantId });
   },
 
   assignAssistantEmail: async (referralId, assistantId) => {
-    return api.put(`/anamnesis/referral/${referralId}/assign-assistant/mail`, {
-      assistantId,
-    });
+    return api.put(`/anamnesis/referral/${referralId}/assign-assistant/mail`, { assistantId });
   },
 
   listarReferral: async (assistantId) => {
-    try {
-      const response = await api.get(`/anamnesis/referral/findByAssistant/${assistantId}`);
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao listar todas as anamneses:", error);
-      throw error;
-    }
+    const response = await api.get(`/anamnesis/referral/findByAssistant/${assistantId}`);
+    return response.data;
   },
 
   listarHistorico: async (patientId) => {
@@ -157,22 +115,13 @@ const AnamnesisService = {
   },
 
   relReferral: async (referralId) => {
-    try {
-      const response = await api.get(`/anamnesis/referral/findById/${referralId}`);
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao listar todas as anamneses:", error);
-      throw error;
-    }
+    const response = await api.get(`/anamnesis/referral/findById/${referralId}`);
+    return response.data;
   },
+
   listAllReferral: async () => {
-    try {
-      const response = await api.get("/anamnesis/referral/findall");
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao listar todas as anamneses:", error);
-      throw error;
-    }
+    const response = await api.get("/anamnesis/referral/findall");
+    return response.data;
   },
 };
 

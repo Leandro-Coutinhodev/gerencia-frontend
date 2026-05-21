@@ -1,443 +1,405 @@
+// src/pages/anamnesis/anamnesisform/AnamnesisForm.jsx
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { CheckCircle, XCircle, Lock } from "lucide-react";
-import PatientInfoStep from "../patientinfostep/PatientInfoStep";
-import HistoryStep from "../historystep/HistoryStep";
-import ReportStep from "../reportstep/ReportStep";
+import { CheckCircle, XCircle, Lock, AlertCircle } from "lucide-react";
+import DynamicFormField from "./DynamicFormField";
 import AnamnesisService from "../../../services/AnamnesisService";
 import Alert from "../../../components/alert/Alert";
 
+/**
+ * Três modos de operação:
+ *
+ *  1. token      → formulário público para o responsável preencher
+ *  2. anamneseid → visualização somente leitura (admin)
+ *  3. anamneseId → edição autenticada (admin)
+ */
 function AnamnesisForm() {
   const { token, anamneseid, anamneseId } = useParams();
 
-  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isReadOnly, setIsReadOnly] = useState(false);
-  const [tokenStatus, setTokenStatus] = useState(null); // 'valid', 'expired', 'invalid'
+  const [tokenStatus, setTokenStatus] = useState(null); // 'valid' | 'expired' | 'invalid'
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [alert, setAlert] = useState(null);
 
-  const [formData, setFormData] = useState({
-    id: "",
-    patientId: "",
-    patientName: "",
-    interviewDate: "",
-    diagnoses: [],
-    otherDiagnosis: "",
-    medicationAndAllergies: "",
-    indications: "",
-    objectives: "",
-    developmentHistory: "",
-    preferences: "",
-    interferingBehaviors: "",
-    qualityOfLife: "",
-    feeding: "",
-    sleep: "",
-    therapists: "",
-    report: null,
-  });
+  // ── Dados do formulário ────────────────────────────────────────────────────
+
+  const [anamnesisId, setAnamnesisId] = useState(null);
+  const [patientName, setPatientName] = useState("");
+  const [templateName, setTemplateName] = useState("");
+
+  // Campos do template: [{ id, label, fieldType, required, placeholder, options }]
+  const [fields, setFields] = useState([]);
+
+  // Respostas textuais indexadas por fieldId: { [fieldId]: string }
+  const [answers, setAnswers] = useState({});
+
+  // Arquivos locais indexados por fieldId: { [fieldId]: File }
+  const [files, setFiles] = useState({});
+
+  // Arquivos já salvos no backend: { [fieldId]: { hasFile, fileName } }
+  const [savedFiles, setSavedFiles] = useState({});
+
+  // Erros de validação por fieldId: { [fieldId]: string }
+  const [errors, setErrors] = useState({});
+
+  // ── Carregamento ────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    const carregarDados = async () => {
+    const load = async () => {
       try {
-        // MODO 1: Visualização (anamneseid) - READ ONLY
-        if (anamneseid) {
-          setIsReadOnly(true);
-          const dados = await AnamnesisService.buscarPorId(anamneseid);
+        // MODO 1: formulário público (token)
+        if (token) {
+          const dto = await AnamnesisService.buscarPorToken(token);
 
-          const diagArray = Array.isArray(dados.diagnoses)
-            ? dados.diagnoses
-            : (dados.diagnoses ?? "")
-                .split(",")
-                .map((d) => d.trim())
-                .filter(Boolean);
-
-          const cleaned = Array.from(new Set(diagArray.map((s) => s.trim()).filter(Boolean)));
-
-          const knownOptions = new Set([
-            "Sem diagnóstico",
-            "Autismo",
-            "TDAH",
-            "Altas Habilidades",
-            "Síndrome de Down",
-            "Obesidade",
-            "Apraxia da Fala",
-            "Dispraxia",
-            "Outro",
-          ]);
-
-          const customCandidates = cleaned.filter((d) => !knownOptions.has(d));
-          const otherDiagValue =
-            dados.otherDiagnosis ?? (customCandidates.length ? customCandidates.at(-1) : "");
-
-          setFormData({
-            id: dados.id ?? "",
-            patientId: dados.patientId ?? "",
-            patientName: dados.patientName ?? "",
-            interviewDate: dados.interviewDate
-              ? dados.interviewDate.substring(0, 10)
-              : "",
-            diagnoses: cleaned,
-            otherDiagnosis: otherDiagValue,
-            medicationAndAllergies: dados.medicationAndAllergies ?? "",
-            indications: dados.indications ?? "",
-            objectives: dados.objectives ?? "",
-            developmentHistory: dados.developmentHistory ?? "",
-            preferences: dados.preferences ?? "",
-            interferingBehaviors: dados.interferingBehaviors ?? "",
-            qualityOfLife: dados.qualityOfLife ?? "",
-            feeding: dados.feeding ?? "",
-            sleep: dados.sleep ?? "",
-            therapists: dados.therapists ?? "",
-            report: null,
-          });
-          setTokenStatus('valid'); // Para não mostrar telas de erro
-        } 
-        // MODO 2: Formulário Público (token)
-        else if (token) {
-          const dados = await AnamnesisService.buscarPorToken(token);
-
-          // Verifica se já foi respondida
-          if (dados.status !== 'Encaminhada') {
-            setTokenStatus('expired');
-            setLoading(false);
+          // 'E' = Encaminhada (aguardando resposta); qualquer outro já foi respondido
+          if (dto.status !== "E") {
+            setTokenStatus("expired");
             return;
           }
 
-          setTokenStatus('valid');
-          
-          const diagArray = Array.isArray(dados.diagnoses)
-            ? dados.diagnoses
-            : (dados.diagnoses ?? "")
-                .split(",")
-                .map((d) => d.trim())
-                .filter(Boolean);
-
-          setFormData({
-            id: dados.id ?? "",
-            patientId: dados.patientId ?? "",
-            patientName: dados.patientName ?? "",
-            interviewDate: dados.interviewDate
-              ? dados.interviewDate.substring(0, 10)
-              : new Date().toISOString().split("T")[0],
-            diagnoses: Array.from(new Set(diagArray)),
-            otherDiagnosis: dados.otherDiagnosis ?? "",
-            medicationAndAllergies: dados.medicationAndAllergies ?? "",
-            indications: dados.indications ?? "",
-            objectives: dados.objectives ?? "",
-            developmentHistory: dados.developmentHistory ?? "",
-            preferences: dados.preferences ?? "",
-            interferingBehaviors: dados.interferingBehaviors ?? "",
-            qualityOfLife: dados.qualityOfLife ?? "",
-            feeding: dados.feeding ?? "",
-            sleep: dados.sleep ?? "",
-            therapists: dados.therapists ?? "",
-            report: null,
-          });
-        } 
-        // MODO 3: Edição (anamneseId)
-        else if (anamneseId) {
-          const dados = await AnamnesisService.buscarPorId(anamneseId);
-
-          const diagArray = Array.isArray(dados.diagnoses)
-            ? dados.diagnoses
-            : (dados.diagnoses ?? "")
-                .split(",")
-                .map((d) => d.trim())
-                .filter(Boolean);
-
-          const cleaned = Array.from(new Set(diagArray.map((s) => s.trim()).filter(Boolean)));
-
-          const knownOptions = new Set([
-            "Sem diagnóstico",
-            "Autismo",
-            "TDAH",
-            "Altas Habilidades",
-            "Síndrome de Down",
-            "Obesidade",
-            "Apraxia da Fala",
-            "Dispraxia",
-            "Outro",
-          ]);
-
-          const customCandidates = cleaned.filter((d) => !knownOptions.has(d));
-          const otherDiagValue =
-            dados.otherDiagnosis ?? (customCandidates.length ? customCandidates.at(-1) : "");
-
-          setFormData({
-            id: dados.id ?? "",
-            patientId: dados.patientId ?? "",
-            patientName: dados.patientName ?? "",
-            interviewDate: dados.interviewDate
-              ? dados.interviewDate.substring(0, 10)
-              : "",
-            diagnoses: cleaned,
-            otherDiagnosis: otherDiagValue,
-            medicationAndAllergies: dados.medicationAndAllergies ?? "",
-            indications: dados.indications ?? "",
-            objectives: dados.objectives ?? "",
-            developmentHistory: dados.developmentHistory ?? "",
-            preferences: dados.preferences ?? "",
-            interferingBehaviors: dados.interferingBehaviors ?? "",
-            qualityOfLife: dados.qualityOfLife ?? "",
-            feeding: dados.feeding ?? "",
-            sleep: dados.sleep ?? "",
-            therapists: dados.therapists ?? "",
-            report: null,
-          });
-          setTokenStatus('valid');
+          setTokenStatus("valid");
+          populateFromFormDTO(dto);
         }
-      } catch (error) {
-        console.error(error);
-        setTokenStatus('invalid');
-        setAlert({
-          type: "error",
-          message: "Erro ao carregar dados da anamnese.",
-        });
+
+        // MODO 2: visualização (anamneseid)
+        else if (anamneseid) {
+          setIsReadOnly(true);
+          const dto = await AnamnesisService.buscarPorId(anamneseid);
+          setTokenStatus("valid");
+          populateFromAnamnesisDTO(dto);
+        }
+
+        // MODO 3: edição (anamneseId)
+        else if (anamneseId) {
+          const dto = await AnamnesisService.buscarPorId(anamneseId);
+          setTokenStatus("valid");
+          populateFromAnamnesisDTO(dto);
+        }
+      } catch (err) {
+        console.error(err);
+        setTokenStatus("invalid");
       } finally {
         setLoading(false);
       }
     };
 
-    carregarDados();
+    load();
   }, [token, anamneseid, anamneseId]);
 
-  const handleChange = (field, value) => {
-    if (!isReadOnly) {
-      setFormData((prev) => ({ ...prev, [field]: value }));
-    }
+  // ── Populadores ─────────────────────────────────────────────────────────────
+
+  /**
+   * Popula a partir de AnamnesisFormDTO (token público).
+   * { anamnesisId, status, patientName, template, existingAnswers }
+   */
+  const populateFromFormDTO = (dto) => {
+    setAnamnesisId(dto.anamnesisId);
+    setPatientName(dto.patientName ?? "");
+    setTemplateName(dto.template?.name ?? "");
+    setFields(normalizeFields(dto.template?.fields ?? []));
+
+    const answerMap = {};
+    const savedFileMap = {};
+
+    (dto.existingAnswers ?? []).forEach((a) => {
+      if (a.fieldType === "FILE") {
+        savedFileMap[a.fieldId] = { hasFile: a.hasFile, fileName: a.fileName };
+      } else {
+        answerMap[a.fieldId] = a.value ?? "";
+      }
+    });
+
+    setAnswers(answerMap);
+    setSavedFiles(savedFileMap);
   };
+
+  /**
+   * Popula a partir de AnamnesisDTO (visualização / edição admin).
+   * { id, patientName, template, answers }
+   */
+  const populateFromAnamnesisDTO = (dto) => {
+    setAnamnesisId(dto.id);
+    setPatientName(dto.patientName ?? "");
+    setTemplateName(dto.template?.name ?? "");
+    setFields(normalizeFields(dto.template?.fields ?? []));
+
+    const answerMap = {};
+    const savedFileMap = {};
+
+    (dto.answers ?? []).forEach((a) => {
+      if (a.fieldType === "FILE") {
+        savedFileMap[a.fieldId] = { hasFile: a.hasFile, fileName: a.fileName };
+      } else {
+        answerMap[a.fieldId] = a.value ?? "";
+      }
+    });
+
+    setAnswers(answerMap);
+    setSavedFiles(savedFileMap);
+  };
+
+  /** Garante que options seja sempre string[] */
+  const normalizeFields = (rawFields) =>
+    rawFields.map((f) => ({
+      ...f,
+      options: Array.isArray(f.options)
+        ? f.options
+        : typeof f.options === "string"
+          ? f.options.split("|").map((o) => o.trim()).filter(Boolean)
+          : [],
+    }));
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+
+  const handleChange = (fieldId, value) => {
+    if (isReadOnly) return;
+    setAnswers((prev) => ({ ...prev, [fieldId]: value }));
+    setErrors((prev) => ({ ...prev, [fieldId]: undefined }));
+  };
+
+  const handleFileChange = (fieldId, file) => {
+    if (isReadOnly) return;
+    setFiles((prev) => ({ ...prev, [fieldId]: file }));
+    setErrors((prev) => ({ ...prev, [fieldId]: undefined }));
+  };
+
+  // ── Validação ─────────────────────────────────────────────────────────────────
+
+  const validate = () => {
+    const errs = {};
+
+    fields.forEach((field) => {
+      if (!field.required) return;
+
+      if (field.fieldType === "FILE") {
+        const hasLocal = !!files[field.id];
+        const hasSaved = savedFiles[field.id]?.hasFile;
+        if (!hasLocal && !hasSaved) {
+          errs[field.id] = "Este campo é obrigatório.";
+        }
+      } else {
+        const val = answers[field.id];
+        if (!val || val.trim() === "") {
+          errs[field.id] = "Este campo é obrigatório.";
+        }
+      }
+    });
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  // ── Submit ────────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
+    if (!validate()) {
+      setAlert({ type: "error", message: "Preencha todos os campos obrigatórios." });
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      setLoading(true);
-
-      const raw = Array.isArray(formData.diagnoses)
-        ? formData.diagnoses
-        : (formData.diagnoses ?? "").split(",").map((d) => d.trim());
-
-      const knownOptions = new Set([
-        "Sem diagnóstico",
-        "Autismo",
-        "TDAH",
-        "Altas Habilidades",
-        "Síndrome de Down",
-        "Obesidade",
-        "Apraxia da Fala",
-        "Dispraxia",
-        "Outro",
-      ]);
-
-      const keptKnown = raw.filter((d) => knownOptions.has(d) && d !== "Outro");
-      const other = (formData.otherDiagnosis ?? "").trim();
-      const finalDiagnoses = other ? [...keptKnown, other] : keptKnown;
-      const finalUnique = Array.from(new Set(finalDiagnoses.map((s) => s.trim()).filter(Boolean)));
-
-      const dadosParaEnvio = {
-        diagnoses: finalUnique.join(", "),
-        medicationAndAllergies: formData.medicationAndAllergies,
-        indications: formData.indications,
-        objectives: formData.objectives,
-        developmentHistory: formData.developmentHistory,
-        preferences: formData.preferences,
-        interferingBehaviors: formData.interferingBehaviors,
-        qualityOfLife: formData.qualityOfLife,
-        feeding: formData.feeding,
-        sleep: formData.sleep,
-        therapists: formData.therapists,
-      };
-
-      const reports = Array.isArray(formData.report)
-        ? formData.report
-        : formData.report
-          ? [formData.report]
-          : [];
-
-      // Se for formulário público (token), usa responderAnamnese
-      if (token) {
-        const formDataToSend = new FormData();
-        
-        formDataToSend.append('anamnesis', new Blob([JSON.stringify(dadosParaEnvio)], {
-          type: 'application/json'
+      // Monta array de answers (exclui campos FILE)
+      const answersArray = fields
+        .filter((f) => f.fieldType !== "FILE")
+        .map((f) => ({
+          fieldId: f.id,
+          value: answers[f.id] ?? null,
         }));
 
-        if (reports.length > 0) {
-          reports.forEach((file) => {
-            formDataToSend.append('reports', file);
-          });
-        }
+      // Monta array de arquivos: { fieldId, file }
+      const filesArray = Object.entries(files)
+        .filter(([, f]) => f !== null)
+        .map(([fieldId, file]) => ({ fieldId: Number(fieldId), file }));
 
-        await AnamnesisService.responderAnamnese(formData.id, formDataToSend);
+      await AnamnesisService.responderAnamnese(anamnesisId, answersArray, filesArray);
 
-        setSubmitSuccess(true);
-        setAlert({
-          type: "success",
-          message: "Anamnese enviada com sucesso! Obrigado pela colaboração.",
-        });
+      setSubmitSuccess(true);
 
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 3000);
-      } else {
-        // Se for edição autenticada, usa criar
-        await AnamnesisService.criar(formData.id, dadosParaEnvio, reports);
-
-        setAlert({
-          type: "success",
-          message: "Anamnese salva com sucesso!",
-        });
+      if (!token) {
+        setAlert({ type: "success", message: "Anamnese salva com sucesso!" });
       }
-    } catch (error) {
-      console.error(error);
-      setAlert({
-        type: "error",
-        message: "Erro ao salvar anamnese.",
-      });
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.message || "Erro ao salvar anamnese.";
+      setAlert({ type: "error", message: msg });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  // Tela de carregamento
+  // ── Telas de estado ───────────────────────────────────────────────────────────
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3D75C4] mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando formulário...</p>
-        </div>
-      </div>
+      <Screen>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+        <p className="text-gray-500 text-sm">Carregando formulário...</p>
+      </Screen>
     );
   }
 
-  // Tela de sucesso (apenas para formulário público)
   if (submitSuccess && token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
-          <CheckCircle className="text-[#3D75C4] mx-auto mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Enviado com sucesso!</h2>
-          <p className="text-gray-600 mb-4">
-            Obrigado por preencher o formulário. As informações foram salvas com sucesso.
-          </p>
-          <p className="text-sm text-gray-500">
-            Você será redirecionado em instantes...
-          </p>
-        </div>
-      </div>
+      <Screen>
+        <CheckCircle className="text-primary mx-auto mb-4" size={60} />
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Enviado com sucesso!</h2>
+        <p className="text-gray-500 text-sm">
+          Obrigado por preencher o formulário. As informações foram salvas.
+        </p>
+      </Screen>
     );
   }
 
-  // Tela de token expirado (apenas para formulário público)
-  if (tokenStatus === 'expired' && token) {
+  if (tokenStatus === "expired" && token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
-          <Lock className="text-[#3D75C4] mx-auto mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Formulário já respondido</h2>
-          <p className="text-gray-600 mb-4">
-            Este formulário já foi preenchido e enviado anteriormente.
-          </p>
-          <p className="text-sm text-gray-500">
-            Se você acredita que isso é um erro, entre em contato com a clínica.
-          </p>
-        </div>
-      </div>
+      <Screen>
+        <Lock className="text-primary mx-auto mb-4" size={60} />
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Formulário já respondido</h2>
+        <p className="text-gray-500 text-sm">
+          Este formulário já foi preenchido anteriormente. Se acredita que é um erro,
+          entre em contato com a clínica.
+        </p>
+      </Screen>
     );
   }
 
-  // Tela de token inválido (apenas se for token e falhou)
-  if (tokenStatus === 'invalid' && token) {
+  if (tokenStatus === "invalid") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
-          <XCircle className="text-[#3D75C4] mx-auto mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Link inválido</h2>
-          <p className="text-gray-600 mb-4">
-            O link que você acessou é inválido ou expirou.
-          </p>
-          <p className="text-sm text-gray-500">
-            Por favor, solicite um novo link à clínica.
-          </p>
-        </div>
-      </div>
+      <Screen>
+        <XCircle className="text-primary mx-auto mb-4" size={60} />
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Link inválido</h2>
+        <p className="text-gray-500 text-sm">
+          O link que você acessou é inválido ou expirou. Por favor, solicite um novo
+          link à clínica.
+        </p>
+      </Screen>
     );
   }
 
-  // Formulário (visualização ou edição)
+  const hasRequiredErrors = Object.values(errors).some(Boolean);
+
+  // ── Formulário ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="min-h-screen bg-gray-50 py-4 px-2 sm:py-8 sm:px-4">
-      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 w-full max-w-4xl mx-auto">
+    <div className={`min-h-screen py-6 px-4 ${token ? "bg-gradient-to-br from-blue-50 to-blue-100" : "bg-gray-50"}`}>
+      <div className="bg-white rounded-2xl shadow-sm p-6 w-full max-w-3xl mx-auto">
+
+        {/* Alert */}
         {alert && (
-          <Alert
-            type={alert.type}
-            message={alert.message}
-            onClose={() => setAlert(null)}
-            duration={4000}
-          />
+          <div className="mb-4">
+            <Alert
+              type={alert.type}
+              message={alert.message}
+              onClose={() => setAlert(null)}
+              duration={5000}
+            />
+          </div>
         )}
 
-        {anamneseId && (
-          <h2 className="text-xl sm:text-2xl font-semibold mb-4">Atualizar Anamnese</h2>
-        )}
-        {anamneseid && (
-          <h2 className="text-xl sm:text-2xl font-semibold mb-4">Visualizar Anamnese</h2>
-        )}
-        {token && (
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+        {/* Cabeçalho */}
+        <div className={`mb-6 ${token ? "text-center" : ""}`}>
+          {token && (
+            <h1 className="text-2xl font-bold text-gray-800 mb-1">
               Formulário de Anamnese
             </h1>
-            <p className="text-sm sm:text-base text-gray-600">
-              Paciente: <span className="font-semibold">{formData.patientName}</span>
+          )}
+          {!token && (
+            <h2 className="text-xl font-semibold text-gray-800">
+              {isReadOnly ? "Visualizar Anamnese" : "Editar Anamnese"}
+            </h2>
+          )}
+
+          <div className={`flex flex-wrap gap-x-4 gap-y-1 mt-2 ${token ? "justify-center" : ""}`}>
+            <span className="text-sm text-gray-500">
+              Paciente: <span className="font-medium text-gray-700">{patientName}</span>
+            </span>
+            {templateName && (
+              <span className="text-sm text-gray-400">
+                Modelo: <span className="font-medium text-gray-600">{templateName}</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Banner de erros de validação */}
+        {hasRequiredErrors && (
+          <div className="flex items-start gap-3 bg-red-50 border border-red-200
+            rounded-xl px-4 py-3 mb-6">
+            <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-red-600">
+              Preencha todos os campos obrigatórios antes de enviar.
             </p>
           </div>
         )}
 
-        <div className="flex overflow-x-auto border-b -mx-4 px-4 sm:mx-0 sm:px-0">
-          {["Informações do paciente", "Histórico", "Laudo"].map((label, index) => (
-            <button
-              key={label}
-              className={`flex-shrink-0 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                step === index
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-gray-500 hover:text-primary"
-              }`}
-              onClick={() => setStep(index)}
-            >
-              {label}
-            </button>
-          ))}
+        {/* Divisor */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 h-px bg-gray-100" />
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            {isReadOnly ? "Respostas" : "Preencha os campos abaixo"}
+          </span>
+          <div className="flex-1 h-px bg-gray-100" />
         </div>
 
-        <div className="mt-4 sm:mt-6">
-          {step === 0 && (
-            <PatientInfoStep
-              data={formData}
-              onChange={handleChange}
-              onNext={() => setStep(1)}
-              isReadOnly={isReadOnly}
-            />
-          )}
-          {step === 1 && (
-            <HistoryStep
-              data={formData}
-              onChange={handleChange}
-              onPrev={() => setStep(0)}
-              onNext={() => setStep(2)}
-              isReadOnly={isReadOnly}
-            />
-          )}
-          {step === 2 && (
-            <ReportStep
-              data={formData}
-              onChange={handleChange}
-              onPrev={() => setStep(1)}
-              onSubmit={handleSubmit}
-              isReadOnly={isReadOnly}
-            />
-          )}
-        </div>
+        {/* Campos dinâmicos */}
+        {fields.length === 0 ? (
+          <p className="text-center text-gray-400 text-sm py-8">
+            Este formulário não possui campos cadastrados.
+          </p>
+        ) : (
+          <div className="space-y-5">
+            {fields.map((field) => (
+              <DynamicFormField
+                key={field.id}
+                field={field}
+                value={answers[field.id] ?? null}
+                file={files[field.id] ?? null}
+                hasFile={savedFiles[field.id]?.hasFile ?? false}
+                fileName={savedFiles[field.id]?.fileName ?? null}
+                onChange={handleChange}
+                onFileChange={handleFileChange}
+                isReadOnly={isReadOnly}
+                error={errors[field.id] ?? null}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Botão de envio */}
+        {!isReadOnly && fields.length > 0 && (
+          <div className="flex justify-end mt-8 pt-6 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="px-8 py-2.5 rounded-full bg-primary text-white font-medium text-sm
+                hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed
+                flex items-center gap-2"
+            >
+              {submitting && (
+                <span className="w-4 h-4 border-2 border-white/40 border-t-white
+                  rounded-full animate-spin" />
+              )}
+              {submitting ? "Enviando..." : token ? "Enviar formulário" : "Salvar alterações"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Tela centralizada para estados (loading, sucesso, erro) ───────────────────
+
+function Screen({ children }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100
+      flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md text-center w-full">
+        {children}
       </div>
     </div>
   );
