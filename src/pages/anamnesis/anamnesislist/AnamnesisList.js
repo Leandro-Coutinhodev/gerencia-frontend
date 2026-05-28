@@ -1,6 +1,6 @@
 // src/pages/anamnesis/anamnesislist/AnamnesisList.js
 import { useEffect, useState } from "react";
-import { Pencil, Trash2, Search, Eye, Link2, Check } from "lucide-react";
+import { Reply, Pencil, Trash2, Search, Eye, Link2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnamnesisService from "../../../services/AnamnesisService";
 import Alert from "../../../components/alert/Alert";
@@ -74,6 +74,8 @@ export default function AnamnesisList() {
       return;
     }
 
+  
+
     navigator.clipboard.writeText(anamnese.link).then(() => {
       setCopiedLinkId(anamnese.id);
       setAlert({ type: "success", message: "Link copiado para a área de transferência!" });
@@ -82,6 +84,10 @@ export default function AnamnesisList() {
       setAlert({ type: "error", message: "Erro ao copiar link." });
     });
   };
+
+  const handleOpen = (anamnese) => {
+    window.location.href = anamnese.link;
+  }
 
   // ── Fluxo de encaminhamento ──────────────────────────────────────────────────
 
@@ -294,6 +300,15 @@ export default function AnamnesisList() {
                     <td className="py-2">{statusBadge(a.status)}</td>
                     <td className="py-2">
                       <div className="flex justify-center gap-3">
+                        <button
+                          title="Responder anamnese"
+                          onClick={() => handleOpen(a)}
+                          className="text-primary hover:text-blue-800 transition-colors"
+                        >
+
+                          <Reply size={18}/>
+                        </button>
+                        
 
                         {/* Copiar link */}
                         <button
