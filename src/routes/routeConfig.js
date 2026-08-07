@@ -14,13 +14,17 @@ import AnamnesisSelectFields from "../pages/anamnesisselectedfields/AnamnesisSel
 import AnamnesisReferralHistory from "../pages/anamnesis/anamnesisreferralhistory/AnamnesisReferralHistory";
 import RelatorioAnamnese from "../pages/relatorioanamnese/RelatorioAnamnese";
 import VisualizarRelatorio from "../pages/anamnesis/visualizarrelatorio/VisualizarRelatorio";
-import GenerateContract from "../pages/contract/generatecontract/GenerateContract";
-import ContractsList from "../pages/contract/contractslist/ContractsList";
 import CadastroPacientePublico from "../pages/cadastropacientepublico/CadastroPacientePublico";
-import ContractSignPage from "../pages/contractsignpage/ContractSignPage";
+import ContractSigningPage from "../pages/contractsigningpage/ContractSigningPage";
 import ForgotPassword from "../pages/forgotpassword/ForgotPassword";
 import ResetPassword from "../pages/forgotpassword/ResetPassword";
 import AnamnesisModelList from "../pages/anamnesis/anamnesismodellist/AnamnesisModelList";
+import ContractTemplateEditor from "../pages/contract/contracttemplateeditor/ContractTemplateEditor";
+import CreateContractModal from "../modal/createcontractmodal/CreateContractModal";
+import ContractList from "../pages/contract/contractlist/ContractList";
+import ContractTemplateList from "../pages/contract/contracttemplatelist/ContractTemplateList";
+import { path } from "framer-motion/client";
+import AniversariantesDoMes from "../pages/aniversariantesdomes/AniversariantesDoMes";
 
 
 const routeConfig = [
@@ -45,7 +49,7 @@ const routeConfig = [
     },
     {
       path: '/anamnese/modelo',
-      element: <AnamnesisModelList/>
+      element: <AnamnesisModelList />
 
     },
     {
@@ -82,12 +86,26 @@ const routeConfig = [
     },
     {
       path: '/contrato',
-      element: <ContractsList />
+      element: <ContractList />
     },
     {
-      path: '/contrato/criar',
-      element: <GenerateContract />
-    }]
+      path: '/contrato/modelo',
+      element: <ContractTemplateList />
+    },
+    {
+      path: '/contrato/modelo/novo',
+      element: <ContractTemplateEditor />
+    },
+    {
+      path: '/contrato/modelo/:id/editar',
+      element: <ContractTemplateEditor />
+    },
+    {
+      path: '/aniversariantes',
+      element: <AniversariantesDoMes/>
+    }
+
+    ]
   },
   {
     path: '/login',
@@ -99,19 +117,19 @@ const routeConfig = [
   },
   {
     path: '/form-cadastro-paciente',
-    element: <CadastroPacientePublico/>
+    element: <CadastroPacientePublico />
   },
   {
     path: '/contrato/:token',
-    element: <ContractSignPage/>
+    element: <ContractSigningPage />
   },
   {
     path: '/recuperar-senha',
-    element: <ForgotPassword/>
+    element: <ForgotPassword />
   },
   {
     path: '/restaurar-senha',
-    element: <ResetPassword/>
+    element: <ResetPassword />
   }
 
 ]

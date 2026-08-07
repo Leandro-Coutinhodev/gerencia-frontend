@@ -2,7 +2,6 @@ import api from "./Api";
 
 const AnamnesisService = {
 
-  
   cadastrar: async ({ patientId, templateId }) => {
     const response = await api.post("/anamnesis", { patientId, templateId }, {
       headers: { "Content-Type": "application/json" },
@@ -36,7 +35,6 @@ const AnamnesisService = {
 
   listar: async () => {
     const response = await api.get("/anamnesis");
-    console.log(response.data);
     return response.data;
   },
 
@@ -81,14 +79,11 @@ const AnamnesisService = {
     return response.data; // string: "https://host/formulario?token=xxx"
   },
 
-  // ─── Referral (inalterado) ────────────────────────────────────────────────────
+  // ─── Referral ──────────────────────────────────────────────────────────────
 
+  // Encaminhamento feito pelo ADMIN
   sendReferral: async (data) => {
     return api.post("/anamnesis/referral", data);
-  },
-
-  assignAssistantToReferral: async (referralId, assistantId) => {
-    return api.put(`/anamnesis/referral/${referralId}/assign-assistant`, { assistantId });
   },
 
   getReferralByAnamnesis: async (anamnesisId) => {
@@ -96,16 +91,24 @@ const AnamnesisService = {
     return response.data;
   },
 
-  assignAssistant: async (referralId, assistantId) => {
-    return api.put(`/anamnesis/referral/${referralId}/assign-assistant`, { assistantId });
+  // Vincula o profissional destinatário ao encaminhamento (feito pelo ADMIN)
+  assignProfessional: async (referralId, professionalId) => {
+    return api.put(`/anamnesis/referral/${referralId}/assign-professional`, { professionalId });
   },
 
-  assignAssistantEmail: async (referralId, assistantId) => {
-    return api.put(`/anamnesis/referral/${referralId}/assign-assistant/mail`, { assistantId });
+  assignProfessionalEmail: async (referralId, professionalId) => {
+    return api.put(`/anamnesis/referral/${referralId}/assign-professional/mail`, { professionalId });
   },
 
-  listarReferral: async (assistantId) => {
-    const response = await api.get(`/anamnesis/referral/findByAssistant/${assistantId}`);
+  // Usado pelo profissional logado para ver o que foi encaminhado a ele
+  listMyReferrals: async () => {
+    const response = await api.get("/anamnesis/referral/my");
+    return response.data;
+  },
+
+  // Usado pelo ADMIN para ver todos os encaminhamentos
+  listAllReferral: async () => {
+    const response = await api.get("/anamnesis/referral/findall");
     return response.data;
   },
 
@@ -113,16 +116,10 @@ const AnamnesisService = {
     const response = await api.get(`/anamnesis/referral/${patientId}`);
     return response.data;
   },
-
   relReferral: async (referralId) => {
-    const response = await api.get(`/anamnesis/referral/findById/${referralId}`);
-    return response.data;
-  },
-
-  listAllReferral: async () => {
-    const response = await api.get("/anamnesis/referral/findall");
-    return response.data;
-  },
+  const response = await api.get(`/anamnesis/referral/findById/${referralId}`);
+  return response.data;
+},
 };
 
 export default AnamnesisService;

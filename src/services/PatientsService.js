@@ -72,6 +72,13 @@ const PatientsService = {
     console.error('Erro ao buscar pacientes:', error);
     throw error;
   }
+},
+
+getBirthdayThisMonth: async (month) => {
+  const response = await api.get("/patient/birthday", {
+    params: month ? { month } : {},
+  });
+  return response.data;
 },}
 
 ;

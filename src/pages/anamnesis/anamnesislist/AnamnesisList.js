@@ -74,7 +74,7 @@ export default function AnamnesisList() {
       return;
     }
 
-  
+
 
     navigator.clipboard.writeText(anamnese.link).then(() => {
       setCopiedLinkId(anamnese.id);
@@ -181,9 +181,9 @@ export default function AnamnesisList() {
 
   const statusBadge = (status) => {
     const map = {
-      Encaminhada: { label: "Encaminhada",   cls: "bg-blue-100 text-blue-700" },
-      Pronto: { label: "Pronto",    cls: "bg-green-100 text-green-700" },
-      Análise: { label: "Em Análise",    cls: "bg-amber-100 text-amber-700" },
+      Encaminhada: { label: "Encaminhada", cls: "bg-blue-100 text-blue-700" },
+      Pronto: { label: "Pronto", cls: "bg-green-100 text-green-700" },
+      Análise: { label: "Em Análise", cls: "bg-amber-100 text-amber-700" },
     };
     const entry = map[status] || { label: status || "-", cls: "bg-gray-100 text-gray-600" };
     return (
@@ -306,9 +306,9 @@ export default function AnamnesisList() {
                           className="text-primary hover:text-blue-800 transition-colors"
                         >
 
-                          <Reply size={18}/>
+                          <Reply size={18} />
                         </button>
-                        
+
 
                         {/* Copiar link */}
                         <button
@@ -334,11 +334,10 @@ export default function AnamnesisList() {
                             if (a.status !== "E") navigate(`/anamnese/edit/${a.id}`);
                           }}
                           disabled={a.status === "E"}
-                          className={`transition-colors ${
-                            a.status === "E"
-                              ? "text-gray-300 cursor-not-allowed"
-                              : "text-primary hover:text-blue-800"
-                          }`}
+                          className={`transition-colors ${a.status === "E"
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-primary hover:text-blue-800"
+                            }`}
                         >
                           <Pencil size={18} />
                         </button>
@@ -490,10 +489,18 @@ export default function AnamnesisList() {
       )}
 
       {/* ── Modais ── */}
+      {/* <BuscarPacienteModal
+        isOpen={buscarModalOpen}
+        onClose={() => setBuscarModalOpen(false)}
+        onSelectPaciente={handleSelectPaciente}
+      /> */}
       <BuscarPacienteModal
         isOpen={buscarModalOpen}
         onClose={() => setBuscarModalOpen(false)}
         onSelectPaciente={handleSelectPaciente}
+        title="Enviar Anamnese"
+        confirmLabel="Encaminhar Anamnese"
+        description="Selecione o paciente para encaminhar a anamnese ao responsável."
       />
 
       <EncaminharAnamneseModal

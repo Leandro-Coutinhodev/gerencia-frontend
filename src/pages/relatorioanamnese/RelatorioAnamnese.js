@@ -2,10 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Eye, Search } from 'lucide-react';
 import AnamnesisService from '../../services/AnamnesisService';
 import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from "jwt-decode";
-
-// Este componente deve ser integrado ao seu projeto React existente
-// Certifique-se de ter useNavigate do react-router-dom disponível
 
 const RelatorioAnamnese = () => {
   const [relatorios, setRelatorios] = useState([]);
@@ -13,9 +9,6 @@ const RelatorioAnamnese = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  const token = localStorage.getItem("token");
-  const decoded = jwtDecode(token);
 
   useEffect(() => {
     carregarRelatorios();
@@ -28,7 +21,7 @@ const RelatorioAnamnese = () => {
   const carregarRelatorios = async () => {
     try {
       setLoading(true);
-      const response = await AnamnesisService.listarReferral(decoded.sub);
+      const response = await AnamnesisService.listMyReferrals();
       setRelatorios(response || []);
     } catch (error) {
       console.error('Erro ao carregar relatórios:', error);
@@ -48,7 +41,7 @@ const RelatorioAnamnese = () => {
     const filtered = relatorios.filter(
       (rel) =>
         rel.patientName?.toLowerCase().includes(termo) ||
-        rel.assistantName?.toLowerCase().includes(termo) ||
+        rel.professionalName?.toLowerCase().includes(termo) ||
         rel.guardianName?.toLowerCase().includes(termo)
     );
     setFilteredRelatorios(filtered);
@@ -74,7 +67,7 @@ const RelatorioAnamnese = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="Buscar por paciente, assistente ou responsável..."
+            placeholder="Buscar por paciente, profissional ou responsável..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
@@ -88,7 +81,7 @@ const RelatorioAnamnese = () => {
           <thead className="bg-gray-50 border-b">
             <tr className="text-left text-gray-600">
               <th className="py-3 px-4 font-medium">Paciente</th>
-              <th className="py-3 px-4 font-medium">Assistente</th>
+              <th className="py-3 px-4 font-medium">Profissional</th>
               <th className="py-3 px-4 font-medium">Responsável</th>
               <th className="py-3 px-4 font-medium">Data de Envio</th>
               <th className="py-3 px-4 font-medium text-center">Ações</th>
@@ -117,7 +110,7 @@ const RelatorioAnamnese = () => {
                     {relatorio.patientName || '-'}
                   </td>
                   <td className="py-3 px-4 text-gray-700">
-                    {relatorio.assistantName || '-'}
+                    {relatorio.professionalName || '-'}
                   </td>
                   <td className="py-3 px-4 text-gray-700">
                     {relatorio.guardianName || '-'}

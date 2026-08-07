@@ -119,7 +119,7 @@ function Dashboard() {
                         </Link>
                     )}
 
-                    {/* {user?.scope === "ADMIN" && (
+                    {user?.scope === "ADMIN" && (
                         <Link
                             to="/aniversariantes"
                             className={navLinkClass("birthdays")}
@@ -129,7 +129,7 @@ function Dashboard() {
                             <Calendar size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
                             {sidebarOpen && <span>Aniversariantes</span>}
                         </Link>
-                    )} */}
+                    )}
 
                     {/* MENU GERENCIAR PACIENTES */}
                     {(user?.scope === "SECRETARY" || user?.scope === "ADMIN") && (
@@ -171,8 +171,17 @@ function Dashboard() {
                                     </Link>
                                 </div>
                             )}
+                            <Link
+                                to="/contrato/modelo"
+                                className={navLinkClass("contrato")}
+                                onClick={() => setActiveMenu("contrato")}
+                                title="Contrato"
+                            >
+                                <LayoutGrid size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                                {sidebarOpen && <span>Modelos de Contrato</span>}
+                            </Link>
 
-                            {/* <Link
+                            <Link
                                 to="/contrato"
                                 className={navLinkClass("contrato")}
                                 onClick={() => setActiveMenu("contrato")}
@@ -180,7 +189,7 @@ function Dashboard() {
                             >
                                 <FileText size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
                                 {sidebarOpen && <span>Contrato</span>}
-                            </Link> */}
+                            </Link>
                             <Link
                                 to="/anamnese/modelo"
                                 className={navLinkClass("modelos")}
@@ -193,7 +202,7 @@ function Dashboard() {
                         </div>
                     )}
 
-                    {(user?.scope === "PROFESSIONAL" || user?.scope === "ADMIN") && (
+                    {( user?.scope === "ADMIN") && (
                         <Link
                             to="/paciente/encaminhar"
                             className={navLinkClass("encaminhar")}
@@ -205,7 +214,7 @@ function Dashboard() {
                         </Link>
                     )}
 
-                    {(user?.scope === "ASSISTANT" || user?.scope === "ADMIN") && (
+                    {(user?.scope === "PROFESSIONAL" || user?.scope === "ADMIN") && (
                         <Link
                             to="/relatorios"
                             className={navLinkClass("relatorios")}

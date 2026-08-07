@@ -75,7 +75,7 @@ export default function AnamnesisList2() {
   };
 
   const handleEncaminharConfirm = async () => {
-    setAlert({ type: "success", message: "Assistente vinculado com sucesso!" });
+    setAlert({ type: "success", message: "Profissional vinculado com sucesso!" });
     setEncaminharModalOpen(false);
     await fetchAnamneses();
   };
