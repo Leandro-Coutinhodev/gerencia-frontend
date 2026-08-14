@@ -50,6 +50,16 @@ const SecretaryService = {
       throw error;
     }
   },
+    getAll: async () => {
+    const res = await api.get("/secretaries");
+    return res.data;
+  },
+ 
+  search: async (q = "") => {
+    const res = await api.get("/secretaries/search", { params: { q } });
+    return res.data;
+  },
+
 };
 
 export default SecretaryService;

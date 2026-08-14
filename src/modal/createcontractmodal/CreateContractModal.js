@@ -2,11 +2,12 @@
 import { useState, useEffect, useRef } from "react";
 import {
   X, Upload, FileText, Check, Eye, ChevronRight,
-  User, Building2, AlertCircle, Sparkles
+  User, Building2, AlertCircle, Sparkles, UserPlus, Trash2
 } from "lucide-react";
 import ContractService from "../../services/ContractService";
 import ContractTemplateService from "../../services/ContractTemplateService";
 import BuscarPacienteModal from "../../modal/buscarpacientemodal/BuscarPacienteModal";
+import BuscarSecretariaModal from "../../modal/buscarsecretariamodal/BuscarSecretariaModal";
 import Alert from "../../components/alert/Alert";
 
 // ── Labels dos steps ──────────────────────────────────────────────────────────
@@ -35,6 +36,8 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
   const [selectedTemplate,  setSelectedTemplate]  = useState(null);
   const [variableValues,    setVariableValues]    = useState({});
   const [hasWitnesses,      setHasWitnesses]      = useState(false);
+  const [witnesses,         setWitnesses]         = useState([]); // Secretary[]
+  const [witnessModalOpen,  setWitnessModalOpen]  = useState(false);
   const [previewHtml,       setPreviewHtml]       = useState("");
 
   // Modo external
@@ -47,7 +50,7 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
     setMode(null); setStep(0); setAlert(null); setSubmitting(false);
     setPatient(null); setGuardian(null);
     setSelectedTemplate(null); setVariableValues({});
-    setHasWitnesses(false); setPreviewHtml("");
+    setHasWitnesses(false); setWitnesses([]); setPreviewHtml("");
     setPdfFile(null); setTemplates([]);
   };
 
@@ -161,7 +164,9 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
           guardianId:     guardian.id,
           variableValues,
           hasWitnesses:   hasWitnesses || selectedTemplate.witnessConfig === "OBRIGATORIO",
-          witnessUserIds: undefined,
+          witnessUserIds: witnesses.length > 0
+            ? witnesses.map(w => w.id)
+            : undefined,
         });
       } else {
         await ContractService.createExternal(
@@ -466,7 +471,9 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
                     ? "Todos receberão o link ao mesmo tempo."
                     : "Os links serão enviados em sequência, um após o outro."}
                 />
-                <div className="space-y-2">
+
+                {/* Participantes fixos */}
+                <div className="space-y-2 mb-4">
                   <ParticipantCard
                     order={1}
                     role="Contratante"
@@ -483,15 +490,34 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
                     color="green"
                     status="Assinatura automática ao criar"
                   />
+                  {/* Testemunhas selecionadas */}
+                  {witnesses.map((w, idx) => (
+                    <ParticipantCard
+                      key={w.id}
+                      order={3 + idx}
+                      role="Testemunha"
+                      name={w.name}
+                      email={w.email}
+                      color="amber"
+                      status="Receberá o link por e-mail"
+                      onRemove={() => setWitnesses(prev => prev.filter(s => s.id !== w.id))}
+                    />
+                  ))}
                 </div>
 
+                {/* Seção de testemunhas */}
                 {selectedTemplate?.witnessConfig !== "NAO_UTILIZA" && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="border-t border-gray-100 pt-4">
+
+                    {/* Toggle para OPCIONAL */}
                     {selectedTemplate?.witnessConfig === "OPCIONAL" && (
                       <label className="flex items-center gap-2.5 cursor-pointer
                         text-sm font-medium text-gray-700 mb-3">
                         <div
-                          onClick={() => setHasWitnesses(v => !v)}
+                          onClick={() => {
+                            setHasWitnesses(v => !v);
+                            if (hasWitnesses) setWitnesses([]);
+                          }}
                           className={`w-5 h-5 rounded border-2 flex items-center
                             justify-center flex-shrink-0 transition-colors cursor-pointer
                             ${hasWitnesses
@@ -499,23 +525,49 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
                               : "bg-white border-gray-300"
                             }`}
                         >
-                          {hasWitnesses && (
-                            <Check size={11} className="text-white" />
-                          )}
+                          {hasWitnesses && <Check size={11} className="text-white" />}
                         </div>
                         Adicionar testemunhas a este contrato
                       </label>
                     )}
+
+                    {/* Botão de adicionar testemunhas */}
                     {(hasWitnesses || selectedTemplate?.witnessConfig === "OBRIGATORIO") && (
-                      <div className="flex items-start gap-2.5 bg-amber-50 border
-                        border-amber-100 rounded-xl px-4 py-3">
-                        <AlertCircle size={15}
-                          className="text-amber-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-amber-700 leading-relaxed">
-                          Este modelo requer {selectedTemplate?.witnessCount || 1}{" "}
-                          testemunha(s). A seleção de secretárias específicas será
-                          adicionada em breve.
-                        </p>
+                      <div>
+                        {/* Info sobre requisito */}
+                        {selectedTemplate?.witnessConfig === "OBRIGATORIO" && (
+                          <div className="flex items-start gap-2 mb-3 text-xs
+                            text-amber-700 bg-amber-50 border border-amber-100
+                            rounded-xl px-3 py-2.5">
+                            <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+                            <span>
+                              Este modelo exige{" "}
+                              <strong>{selectedTemplate?.witnessCount || 1}</strong>{" "}
+                              testemunha{(selectedTemplate?.witnessCount || 1) !== 1 ? "s" : ""}.
+                              {witnesses.length < (selectedTemplate?.witnessCount || 1) && (
+                                <span className="text-amber-600">
+                                  {" "}Adicione ainda{" "}
+                                  {(selectedTemplate?.witnessCount || 1) - witnesses.length} mais.
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Botão abrir modal */}
+                        <button
+                          type="button"
+                          onClick={() => setWitnessModalOpen(true)}
+                          className="w-full flex items-center justify-center gap-2
+                            px-4 py-3 border-2 border-dashed border-gray-200 rounded-xl
+                            text-sm font-medium text-gray-500 hover:border-primary
+                            hover:text-primary hover:bg-primary/5 transition"
+                        >
+                          <UserPlus size={16} />
+                          {witnesses.length === 0
+                            ? "Selecionar testemunhas"
+                            : "Adicionar mais testemunhas"}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -718,6 +770,20 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
         confirmLabel="Selecionar Paciente"
         description="Selecione o paciente para obter o responsável vinculado."
       />
+
+      <BuscarSecretariaModal
+        isOpen={witnessModalOpen}
+        onClose={() => setWitnessModalOpen(false)}
+        onConfirm={(selected) => {
+          // Merge sem duplicatas
+          setWitnesses(prev => {
+            const ids = new Set(prev.map(s => s.id));
+            return [...prev, ...selected.filter(s => !ids.has(s.id))];
+          });
+        }}
+        maxSelect={selectedTemplate?.witnessCount || Infinity}
+        alreadySelected={witnesses}
+      />
     </>
   );
 }
@@ -831,13 +897,13 @@ function DetailRow({ label, value }) {
   );
 }
 
-function ParticipantCard({ order, role, name, email, color, status }) {
+function ParticipantCard({ order, role, name, email, color, status, onRemove }) {
   const colors = {
-    blue:  { ring: "border-blue-200 bg-blue-50",  badge: "bg-blue-500",
+    blue:  { ring: "border-blue-200 bg-blue-50",   badge: "bg-blue-500",
               text: "text-blue-700" },
-    green: { ring: "border-green-200 bg-green-50", badge: "bg-green-500",
+    green: { ring: "border-green-200 bg-green-50",  badge: "bg-green-500",
               text: "text-green-700" },
-    amber: { ring: "border-amber-200 bg-amber-50", badge: "bg-amber-500",
+    amber: { ring: "border-amber-200 bg-amber-50",  badge: "bg-amber-500",
               text: "text-amber-700" },
   };
   const c = colors[color] || colors.blue;
@@ -855,9 +921,21 @@ function ParticipantCard({ order, role, name, email, color, status }) {
         </div>
         <p className="text-xs text-gray-500 truncate">{email}</p>
       </div>
-      <span className={`text-[11px] ${c.text} font-medium flex-shrink-0`}>
-        {status}
-      </span>
+      {onRemove ? (
+        <button
+          type="button"
+          onClick={onRemove}
+          title="Remover testemunha"
+          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50
+            rounded-lg transition flex-shrink-0"
+        >
+          <Trash2 size={13} />
+        </button>
+      ) : (
+        <span className={`text-[11px] ${c.text} font-medium flex-shrink-0`}>
+          {status}
+        </span>
+      )}
     </div>
   );
 }
