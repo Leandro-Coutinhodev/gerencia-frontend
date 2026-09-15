@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown, Send, FileText, LogOut, Form, FormInput, LayoutGrid } from "lucide-react";
+import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown, Send, FileText, LogOut, Form, FormInput, LayoutGrid, DollarSign } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { jwtDecode } from "jwt-decode";
 import ConfirmDialog from "../../components/confirm/ConfirmDialog";
@@ -9,6 +9,7 @@ function Dashboard() {
     const [user, setUser] = useState(null);
     const [activeMenu, setActiveMenu] = useState("");
     const [openSubMenu, setOpenSubMenu] = useState(false);
+    const [openFinanceiroSubMenu, setOpenFinanceiroSubMenu] = useState(false);
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -224,6 +225,66 @@ function Dashboard() {
                             <FileText size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
                             {sidebarOpen && <span>Relatório de Anamnese</span>}
                         </Link>
+                    )}
+
+                    {(user?.scope === "SECRETARY" || user?.scope === "ADMIN") && (
+                        <div>
+                            <button
+                                className={`w-full flex items-center justify-between p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${
+                                    activeMenu === "financeiro" ? "bg-blue-50 text-blue-600" : ""
+                                }`}
+                                onClick={() => setOpenFinanceiroSubMenu(!openFinanceiroSubMenu)}
+                                title="Financeiro"
+                            >
+                                <div className="flex items-center">
+                                    <DollarSign size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                                    {sidebarOpen && <span>Financeiro</span>}
+                                </div>
+                                {sidebarOpen && (
+                                    <ChevronDown
+                                        size={18}
+                                        className={`transform transition-transform ${
+                                            openFinanceiroSubMenu ? "rotate-180" : ""
+                                        }`}
+                                    />
+                                )}
+                            </button>
+
+                            {openFinanceiroSubMenu && sidebarOpen && (
+                                <div className="ml-8 mt-1 space-y-1">
+                                    <Link
+                                        to="/financeiro"
+                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                                        onClick={() => setActiveMenu("financeiro")}
+                                    >
+                                        Cobranças
+                                    </Link>
+                                    <Link
+                                        to="/financeiro/despesas"
+                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                                        onClick={() => setActiveMenu("financeiro")}
+                                    >
+                                        Despesas
+                                    </Link>
+                                    <Link
+                                        to="/financeiro/relatorio"
+                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                                        onClick={() => setActiveMenu("financeiro")}
+                                    >
+                                        Dashboard Financeiro
+                                    </Link>
+                                    {user?.scope === "ADMIN" && (
+                                        <Link
+                                            to="/financeiro/configuracao"
+                                            className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                                            onClick={() => setActiveMenu("financeiro")}
+                                        >
+                                            Configurações
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     )}
                 </nav>
             </aside>

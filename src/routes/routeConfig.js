@@ -25,6 +25,10 @@ import ContractList from "../pages/contract/contractlist/ContractList";
 import ContractTemplateList from "../pages/contract/contracttemplatelist/ContractTemplateList";
 import { path } from "framer-motion/client";
 import AniversariantesDoMes from "../pages/aniversariantesdomes/AniversariantesDoMes";
+import CobrancaList from "../pages/financeiro/cobrancalist/CobrancaList";
+import DespesaList from "../pages/financeiro/despesalist/DespesaList";
+import DashboardFinanceiro from "../pages/financeiro/dashboardfinanceiro/DashboardFinanceiro";
+import FinanceiroConfiguracao from "../pages/financeiro/financeiroconfiguracao/FinanceiroConfiguracao";
 
 
 const routeConfig = [
@@ -103,6 +107,22 @@ const routeConfig = [
     {
       path: '/aniversariantes',
       element: <AniversariantesDoMes/>
+    },
+    {
+      path: '/financeiro',
+      element: <CobrancaList />
+    },
+    {
+      path: '/financeiro/despesas',
+      element: <DespesaList />
+    },
+    {
+      path: '/financeiro/relatorio',
+      element: <DashboardFinanceiro />
+    },
+    {
+      path: '/financeiro/configuracao',
+      element: <FinanceiroConfiguracao />
     }
 
     ]
