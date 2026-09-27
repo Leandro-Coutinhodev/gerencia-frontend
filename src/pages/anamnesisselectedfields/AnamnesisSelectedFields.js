@@ -1,7 +1,7 @@
 // src/pages/anamnesis/AnamnesisSelectFields.jsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, FileText } from "lucide-react";
+import { ArrowLeft, FileText, Eye } from "lucide-react";
 import AnamnesisService from "../../services/AnamnesisService";
 import Alert from "../../components/alert/Alert";
 
@@ -74,6 +74,17 @@ export default function AnamnesisSelectFields() {
     };
     load();
   }, [anamneseid]);
+
+  // Abre em nova aba o arquivo salvo de um campo FILE
+  const handleViewFile = async (fieldId) => {
+    try {
+      const blob = await AnamnesisService.buscarArquivoCampo(anamneseid, fieldId);
+      window.open(URL.createObjectURL(blob), "_blank");
+    } catch (err) {
+      console.error(err);
+      setAlert({ type: "error", message: "Erro ao abrir o arquivo." });
+    }
+  };
 
   // ── Seleção ─────────────────────────────────────────────────────────────────
 
@@ -171,13 +182,6 @@ export default function AnamnesisSelectFields() {
                   </span>
                 </p>
               )}
-              <button
-                onClick={() => window.open(`/laudo/${anamnesisData?.id}`, "_blank")}
-                className="mt-1.5 text-sm font-medium text-sky-600 hover:underline
-                  inline-flex items-center gap-1"
-              >
-                Visualizar laudo <ExternalLink size={14} />
-              </button>
             </div>
           </div>
 
@@ -249,9 +253,21 @@ export default function AnamnesisSelectFields() {
 
                         {/* Valor por tipo */}
                         {answer.fieldType === "FILE" ? (
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <FileText size={14} className="text-red-400" />
-                            {answer.fileName || "arquivo.pdf"}
+                          <div className="flex items-center gap-3 text-sm text-gray-500">
+                            <span className="flex items-center gap-2">
+                              <FileText size={14} className="text-red-400" />
+                              {answer.fileName || "arquivo.pdf"}
+                            </span>
+                            {answer.hasFile && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleViewFile(answer.fieldId); }}
+                                className="flex items-center gap-1 text-xs font-medium
+                                  text-primary hover:underline flex-shrink-0"
+                              >
+                                <Eye size={13} /> Visualizar
+                              </button>
+                            )}
                           </div>
                         ) : answer.fieldType === "CHECKBOX" ? (
                           <div className="flex flex-wrap gap-1.5 mt-1">

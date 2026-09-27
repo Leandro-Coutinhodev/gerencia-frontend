@@ -8,26 +8,30 @@ import { FileText, X, Upload } from "lucide-react";
  * Props:
  *  field        { id, label, fieldType, required, placeholder, options: string[] }
  *  value        string | null   — TEXT, TEXTAREA, DATE, CHECKBOX
- *  file         File | null     — FILE (selecionado localmente)
+ *  files        File[]          — FILE (selecionados localmente; pode ser mais de um,
+ *                                  serão mesclados em um único PDF ao salvar)
  *  hasFile      bool            — FILE já salvo no backend
  *  fileName     string | null   — nome do arquivo salvo
  *  onChange     (fieldId, value) => void
- *  onFileChange (fieldId, File | null) => void
+ *  onFileChange (fieldId, File[]) => void
+ *  onViewFile   (fieldId) => void   — abre o arquivo já salvo (opcional)
  *  isReadOnly   bool
  *  error        string | null
  */
 function DynamicFormField({
   field,
   value,
-  file,
+  files,
   hasFile,
   fileName,
   onChange,
   onFileChange,
+  onViewFile,
   isReadOnly = false,
   error,
 }) {
   const fileInputRef = useRef(null);
+  const selectedFiles = files ?? [];
 
   const baseInput = `w-full p-3 border rounded-lg text-sm transition
     ${isReadOnly
@@ -144,8 +148,8 @@ function DynamicFormField({
   if (field.fieldType === "FILE") {
     return (
       <Wrapper field={field} error={error}>
-        {/* Arquivo salvo no backend (sem novo arquivo selecionado) */}
-        {hasFile && !file && (
+        {/* Arquivo salvo no backend (sem novos arquivos selecionados) */}
+        {hasFile && selectedFiles.length === 0 && (
           <div className="flex items-center justify-between bg-gray-50 border border-gray-200
             rounded-xl px-4 py-3 mb-2">
             <div className="flex items-center gap-3">
@@ -155,37 +159,56 @@ function DynamicFormField({
               </span>
               <span className="text-sm text-gray-700">{fileName || "arquivo.pdf"}</span>
             </div>
-            <span className="text-xs font-medium text-green-600">Salvo</span>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              {onViewFile && (
+                <button type="button" onClick={() => onViewFile(field.id)}
+                  className="text-xs font-medium text-primary hover:underline">
+                  Visualizar
+                </button>
+              )}
+              <span className="text-xs font-medium text-green-600">Salvo</span>
+            </div>
           </div>
         )}
 
-        {/* Arquivo selecionado localmente */}
-        {file && (
-          <div className="flex items-center justify-between bg-primary/5 border border-primary/20
-            rounded-xl px-4 py-3 mb-2">
-            <div className="flex items-center gap-3">
-              <FileText size={16} className="text-primary flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-gray-800">{file.name}</p>
-                <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(0)} KB</p>
+        {/* Arquivos selecionados localmente — mais de um será mesclado em um único PDF */}
+        {selectedFiles.length > 0 && (
+          <div className="space-y-2 mb-2">
+            {selectedFiles.map((f, idx) => (
+              <div key={`${f.name}-${idx}`}
+                className="flex items-center justify-between bg-primary/5 border border-primary/20
+                  rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText size={16} className="text-primary flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{f.name}</p>
+                    <p className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</p>
+                  </div>
+                </div>
+                {!isReadOnly && (
+                  <button type="button"
+                    onClick={() => onFileChange(field.id, selectedFiles.filter((_, i) => i !== idx))}
+                    className="text-gray-400 hover:text-red-500 transition flex-shrink-0">
+                    <X size={16} />
+                  </button>
+                )}
               </div>
-            </div>
-            {!isReadOnly && (
-              <button type="button" onClick={() => onFileChange(field.id, null)}
-                className="text-gray-400 hover:text-red-500 transition">
-                <X size={16} />
-              </button>
+            ))}
+            {selectedFiles.length > 1 && (
+              <p className="text-xs text-gray-400">
+                Estes {selectedFiles.length} arquivos serão mesclados em um único PDF ao salvar.
+              </p>
             )}
           </div>
         )}
 
-        {/* Botão de seleção */}
-        {!isReadOnly && !file && (
+        {/* Botão de seleção — permite escolher mais de um PDF de uma vez */}
+        {!isReadOnly && (
           <>
-            <input ref={fileInputRef} type="file" accept=".pdf" className="hidden"
+            <input ref={fileInputRef} type="file" accept=".pdf" multiple className="hidden"
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onFileChange(field.id, f);
+                const picked = Array.from(e.target.files || []);
+                if (picked.length > 0) onFileChange(field.id, [...selectedFiles, ...picked]);
                 e.target.value = "";
               }}
             />
@@ -198,13 +221,15 @@ function DynamicFormField({
                 }`}
             >
               <Upload size={15} />
-              {hasFile ? "Substituir arquivo PDF" : "Selecionar arquivo PDF"}
+              {selectedFiles.length > 0
+                ? "Adicionar mais PDFs"
+                : hasFile ? "Substituir arquivo(s) PDF" : "Selecionar arquivo(s) PDF"}
             </button>
           </>
         )}
 
         {/* Leitura sem arquivo */}
-        {isReadOnly && !hasFile && !file && (
+        {isReadOnly && !hasFile && selectedFiles.length === 0 && (
           <p className="text-sm text-gray-400 italic">Nenhum arquivo anexado.</p>
         )}
       </Wrapper>

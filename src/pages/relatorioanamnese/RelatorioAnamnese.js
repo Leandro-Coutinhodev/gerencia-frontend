@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, Search } from 'lucide-react';
+import { jwtDecode } from 'jwt-decode';
 import AnamnesisService from '../../services/AnamnesisService';
 import { useNavigate } from 'react-router-dom';
 
+function getScope() {
+  try {
+    const token = localStorage.getItem('token');
+    return token ? jwtDecode(token).scope : '';
+  } catch {
+    return '';
+  }
+}
+
 const RelatorioAnamnese = () => {
+  const isAdmin = getScope() === 'ADMIN';
+
   const [relatorios, setRelatorios] = useState([]);
   const [filteredRelatorios, setFilteredRelatorios] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,7 +33,11 @@ const RelatorioAnamnese = () => {
   const carregarRelatorios = async () => {
     try {
       setLoading(true);
-      const response = await AnamnesisService.listMyReferrals();
+      // Admin tem visão total (todos os encaminhamentos, de qualquer profissional);
+      // profissional comum só vê os que foram encaminhados a ele.
+      const response = isAdmin
+        ? await AnamnesisService.listAllReferral()
+        : await AnamnesisService.listMyReferrals();
       setRelatorios(response || []);
     } catch (error) {
       console.error('Erro ao carregar relatórios:', error);

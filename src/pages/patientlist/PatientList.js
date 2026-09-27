@@ -82,9 +82,9 @@ function PatientList() {
     try {
       await PatientsService.deletar(patientToDelete.id);
       fetchPatients();
-      setAlert({ type: "success", message: "Paciente excluído com sucesso!" });
+      setAlert({ type: "success", message: "Paciente e todos os seus registros vinculados foram excluídos com sucesso!" });
     } catch (error) {
-      setAlert({ type: "error", message: "Erro ao excluir paciente(Este paciente pode ter registros associados)." });
+      setAlert({ type: "error", message: "Erro ao excluir paciente. Tente novamente." });
     } finally {
       setConfirmOpen(false);
       setPatientToDelete(null);
@@ -255,9 +255,10 @@ function PatientList() {
         title="Excluir Paciente"
         message={
           patientToDelete
-            ? `Você está prestes a excluir o paciente ${patientToDelete.name}.\n\n⚠️ Esta ação é permanente e não pode ser desfeita.\n\nTodos os dados relacionados serão removidos, incluindo anamneses, relatórios e contratos.\n\nDeseja realmente continuar?`
+            ? `Você está prestes a excluir o paciente ${patientToDelete.name}.\n\n⚠️ Esta ação é permanente e não pode ser desfeita.\n\nTodos os dados relacionados serão removidos, incluindo anamneses, relatórios, contratos, fichas de atendimento e agendamentos.\n\nDeseja realmente continuar?`
             : ""
         }
+        confirmDelaySeconds={5}
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
       />

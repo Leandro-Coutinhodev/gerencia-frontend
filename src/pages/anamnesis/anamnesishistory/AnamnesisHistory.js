@@ -237,6 +237,7 @@ export default function AnamnesisHistory() {
                     {group.items.map((a) => {
                       const dateForDisplay = getDateFromAnamnese(a);
                       const link =
+                        a.formLink ||
                         a.link ||
                         a.formUrl ||
                         a.url ||
