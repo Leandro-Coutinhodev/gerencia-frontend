@@ -31,6 +31,10 @@ import RecordTemplateEditor from "../pages/records/recordtemplateeditor/RecordTe
 import RecordForm from "../pages/records/recordform/RecordForm";
 import RecordHistory from "../pages/records/recordhistory/RecordHistory";
 import Agenda from "../pages/agenda/Agenda";
+import CobrancaList from "../pages/financeiro/cobrancalist/CobrancaList";
+import DespesaList from "../pages/financeiro/despesalist/DespesaList";
+import DashboardFinanceiro from "../pages/financeiro/dashboardfinanceiro/DashboardFinanceiro";
+import FinanceiroConfiguracao from "../pages/financeiro/financeiroconfiguracao/FinanceiroConfiguracao";
 
 
 const routeConfig = [
@@ -141,6 +145,22 @@ const routeConfig = [
     {
       path: '/agenda',
       element: <Agenda/>
+    },
+    {
+      path: '/financeiro',
+      element: <CobrancaList />
+    },
+    {
+      path: '/financeiro/despesas',
+      element: <DespesaList />
+    },
+    {
+      path: '/financeiro/relatorio',
+      element: <DashboardFinanceiro />
+    },
+    {
+      path: '/financeiro/configuracao',
+      element: <FinanceiroConfiguracao />
     }
 
 
