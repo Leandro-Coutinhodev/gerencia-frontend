@@ -2,56 +2,42 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, FileText, User, Calendar,
-  Loader, CheckSquare, Type, Hash,
-  AlignLeft, Paperclip, AlertCircle,
+  ArrowLeft, FileText, User, Calendar, Loader, AlertCircle, Eye,
 } from "lucide-react";
 import AnamnesisService from "../../../services/AnamnesisService";
 
-// ── Ícone e cor por tipo de campo ─────────────────────────────────────────────
+// ── Renderização do valor por tipo — visual limpo, sem badges/ícones por tipo ─────
 
-const FIELD_TYPE_CONFIG = {
-  TEXT:     { icon: Type,        color: "text-blue-500",  bg: "bg-blue-50"   },
-  TEXTAREA: { icon: AlignLeft,   color: "text-purple-500",bg: "bg-purple-50" },
-  DATE:     { icon: Calendar,    color: "text-yellow-500",bg: "bg-yellow-50" },
-  CHECKBOX: { icon: CheckSquare, color: "text-green-500", bg: "bg-green-50"  },
-  FILE:     { icon: Paperclip,   color: "text-red-500",   bg: "bg-red-50"    },
-};
-
-function fieldConfig(type) {
-  return FIELD_TYPE_CONFIG[type] ?? FIELD_TYPE_CONFIG.TEXT;
-}
-
-// ── Renderização do valor por tipo ────────────────────────────────────────────
-
-function FieldValue({ fieldType, value, hasFile, fileName }) {
+function FieldValue({ fieldType, value, hasFile, fileName, onView }) {
   if (fieldType === "FILE") {
-    return hasFile ? (
-      <div className="flex items-center gap-2 text-sm text-gray-600">
-        <Paperclip size={14} className="text-red-400 flex-shrink-0" />
-        <span>{fileName || "arquivo.pdf"}</span>
-        <span className="text-xs px-2 py-0.5 bg-green-50 text-green-700
-          rounded-full font-medium">
-          Salvo
-        </span>
-      </div>
-    ) : (
-      <p className="text-sm text-gray-400 italic">Nenhum arquivo anexado.</p>
-    );
+    if (hasFile) {
+      return (
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-800">{fileName || "arquivo.pdf"}</span>
+          {onView && (
+            <button
+              type="button"
+              onClick={onView}
+              className="flex items-center gap-1 text-xs font-medium text-primary
+                hover:underline flex-shrink-0"
+            >
+              <Eye size={13} /> Visualizar
+            </button>
+          )}
+        </div>
+      );
+    }
+    // Encaminhamentos antigos guardavam só um texto indicativo, sem metadados para visualizar
+    if (value && value.trim() !== "") {
+      return <p className="text-sm text-gray-500">{value}</p>;
+    }
+    return <p className="text-sm text-gray-400 italic">Nenhum arquivo anexado.</p>;
   }
 
   if (fieldType === "CHECKBOX") {
     const opts = (value || "").split("|").map(o => o.trim()).filter(Boolean);
     return opts.length > 0 ? (
-      <div className="flex flex-wrap gap-1.5">
-        {opts.map(opt => (
-          <span key={opt}
-            className="text-xs px-2.5 py-1 bg-green-50 text-green-700
-              border border-green-100 rounded-full font-medium">
-            {opt}
-          </span>
-        ))}
-      </div>
+      <p className="text-sm text-gray-800">{opts.join(", ")}</p>
     ) : (
       <p className="text-sm text-gray-400 italic">Nenhuma opção selecionada.</p>
     );
@@ -120,12 +106,51 @@ export default function VisualizarRelatorio() {
         }
       }
 
+      // Encaminhamentos antigos guardavam, para campos FILE, só um texto indicativo
+      // (ex: "[Arquivo: nome.pdf]"), sem o fieldId necessário para buscar o arquivo depois.
+      // Tenta recuperar o campo real casando pelo rótulo com as respostas atuais da anamnese,
+      // para permitir visualizar o laudo mesmo em relatórios criados antes dessa correção.
+      const needsFileResolution = parsed.some(
+        (c) => c.fieldType === "FILE" && c.fieldId == null
+      );
+      if (needsFileResolution && data?.anamnesisId) {
+        try {
+          const anamnesisData = await AnamnesisService.buscarPorId(data.anamnesisId);
+          const normalize = (s) => (s || "").trim().toLowerCase();
+          const fileAnswersByLabel = new Map(
+            (anamnesisData.answers || [])
+              .filter((a) => a.fieldType === "FILE")
+              .map((a) => [normalize(a.fieldLabel), a])
+          );
+          parsed = parsed.map((c) => {
+            if (c.fieldType !== "FILE" || c.fieldId != null) return c;
+            const match = fileAnswersByLabel.get(normalize(c.label));
+            return match
+              ? { ...c, fieldId: match.fieldId, hasFile: match.hasFile, fileName: match.fileName }
+              : c;
+          });
+        } catch {
+          // Não foi possível recuperar — mantém o texto indicativo original
+        }
+      }
+
       setCampos(parsed);
     } catch (err) {
       console.error("Erro ao carregar relatório:", err);
       setError("Não foi possível carregar o relatório. Tente novamente.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Abre em nova aba o arquivo salvo de um campo FILE selecionado neste encaminhamento
+  const handleViewFile = async (fieldId) => {
+    try {
+      const blob = await AnamnesisService.buscarArquivoCampo(relatorio.anamnesisId, fieldId);
+      window.open(URL.createObjectURL(blob), "_blank");
+    } catch (err) {
+      console.error(err);
+      setError("Erro ao abrir o arquivo.");
     }
   };
 
@@ -207,13 +232,13 @@ export default function VisualizarRelatorio() {
             pt-4 border-t border-gray-100">
             <InfoCard
               label="Paciente"
-              value={relatorio.anamnesis?.patient?.name}
+              value={relatorio.patientName}
               icon={<User size={15} className="text-primary" />}
             />
-            {relatorio.professional?.name && (
+            {relatorio.professionalName && (
               <InfoCard
                 label="Profissional responsável"
-                value={relatorio.professional.name}
+                value={relatorio.professionalName}
                 icon={<User size={15} className="text-primary" />}
               />
             )}
@@ -243,46 +268,26 @@ export default function VisualizarRelatorio() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {campos.map((campo, idx) => {
-                const cfg = fieldConfig(campo.fieldType);
-                const Icon = cfg.icon;
-
-                return (
-                  <div
-                    key={idx}
-                    className="border border-gray-100 rounded-xl p-4
-                      hover:border-gray-200 transition-colors"
-                  >
-                    {/* Label + badge de tipo */}
-                    <div className="flex items-start gap-2.5 mb-2.5">
-                      <div className={`w-6 h-6 rounded-md flex items-center
-                        justify-center flex-shrink-0 mt-0.5 ${cfg.bg}`}>
-                        <Icon size={13} className={cfg.color} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800 leading-snug">
-                          {campo.label}
-                        </p>
-                      </div>
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full
-                        font-medium flex-shrink-0 ${cfg.bg} ${cfg.color}`}>
-                        {campo.fieldType}
-                      </span>
-                    </div>
-
-                    {/* Valor */}
-                    <div className="pl-8">
-                      <FieldValue
-                        fieldType={campo.fieldType}
-                        value={campo.value}
-                        hasFile={campo.hasFile}
-                        fileName={campo.fileName}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="divide-y divide-gray-100">
+              {campos.map((campo, idx) => (
+                <div key={idx} className="py-4 first:pt-0 last:pb-0">
+                  <p className="text-xs font-medium text-gray-400 uppercase
+                    tracking-wide mb-1.5">
+                    {campo.label}
+                  </p>
+                  <FieldValue
+                    fieldType={campo.fieldType}
+                    value={campo.value}
+                    hasFile={campo.hasFile}
+                    fileName={campo.fileName}
+                    onView={
+                      campo.fieldType === "FILE" && campo.hasFile && campo.fieldId != null
+                        ? () => handleViewFile(campo.fieldId)
+                        : undefined
+                    }
+                  />
+                </div>
+              ))}
             </div>
           )}
         </div>

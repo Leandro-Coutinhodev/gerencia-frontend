@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown, Send, FileText, LogOut, Form, FormInput, LayoutGrid, DollarSign } from "lucide-react";
+import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown, Send, FileText, LogOut, Form, FormInput, LayoutGrid, Dumbbell, ClipboardList, CalendarClock } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { jwtDecode } from "jwt-decode";
 import ConfirmDialog from "../../components/confirm/ConfirmDialog";
@@ -107,6 +107,18 @@ function Dashboard() {
                         <Home size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
                         {sidebarOpen && <span>Página Inicial</span>}
                     </Link>
+
+                    {(user?.scope === "PROFESSIONAL" || user?.scope === "ADMIN") && (
+                        <Link
+                            to="/agenda"
+                            className={navLinkClass("agenda")}
+                            onClick={() => setActiveMenu("agenda")}
+                            title={user?.scope === "ADMIN" ? "Agenda Geral" : "Minha Agenda"}
+                        >
+                            <CalendarClock size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                            {sidebarOpen && <span>{user?.scope === "ADMIN" ? "Agenda Geral" : "Minha Agenda"}</span>}
+                        </Link>
+                    )}
 
                     {user?.scope === "ADMIN" && (
                         <Link
@@ -227,6 +239,37 @@ function Dashboard() {
                         </Link>
                     )}
 
+                    {/* MENU FICHAS DE ATENDIMENTO */}
+                    {(user?.scope === "PROFESSIONAL" || user?.scope === "ADMIN") && (
+                        <div>
+                            
+                            <Link
+                                to="/atividades"
+                                className={navLinkClass("atividades")}
+                                onClick={() => setActiveMenu("atividades")}
+                                title="Banco de Atividades"
+                            >
+                                <Dumbbell size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                                {sidebarOpen && <span>Banco de Atividades</span>}
+                            </Link>
+                            <Link
+                                to="/fichas/modelo"
+                                className={navLinkClass("fichas-modelo")}
+                                onClick={() => setActiveMenu("fichas-modelo")}
+                                title="Modelos de Ficha"
+                            >
+                                <LayoutGrid size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                                {sidebarOpen && <span>Modelos de Ficha</span>}
+                            </Link>
+                            <Link
+                                to="/fichas/historico"
+                                className={navLinkClass("fichas-historico")}
+                                onClick={() => setActiveMenu("fichas-historico")}
+                                title="Fichas por Paciente"
+                            >
+                                <ClipboardList size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                                {sidebarOpen && <span>Fichas por Paciente</span>}
+                            </Link>
                     {(user?.scope === "SECRETARY" || user?.scope === "ADMIN") && (
                         <div>
                             <button

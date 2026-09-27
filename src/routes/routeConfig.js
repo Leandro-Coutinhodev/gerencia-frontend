@@ -25,6 +25,12 @@ import ContractList from "../pages/contract/contractlist/ContractList";
 import ContractTemplateList from "../pages/contract/contracttemplatelist/ContractTemplateList";
 import { path } from "framer-motion/client";
 import AniversariantesDoMes from "../pages/aniversariantesdomes/AniversariantesDoMes";
+import ActivityBank from "../pages/records/activitybank/ActivityBank";
+import RecordTemplateList from "../pages/records/recordtemplatelist/RecordTemplateList";
+import RecordTemplateEditor from "../pages/records/recordtemplateeditor/RecordTemplateEditor";
+import RecordForm from "../pages/records/recordform/RecordForm";
+import RecordHistory from "../pages/records/recordhistory/RecordHistory";
+import Agenda from "../pages/agenda/Agenda";
 import CobrancaList from "../pages/financeiro/cobrancalist/CobrancaList";
 import DespesaList from "../pages/financeiro/despesalist/DespesaList";
 import DashboardFinanceiro from "../pages/financeiro/dashboardfinanceiro/DashboardFinanceiro";
@@ -109,6 +115,38 @@ const routeConfig = [
       element: <AniversariantesDoMes/>
     },
     {
+      path: '/atividades',
+      element: <ActivityBank/>
+    },
+    {
+      path: '/fichas/modelo',
+      element: <RecordTemplateList/>
+    },
+    {
+      path: '/fichas/modelo/novo',
+      element: <RecordTemplateEditor/>
+    },
+    {
+      path: '/fichas/modelo/:id/editar',
+      element: <RecordTemplateEditor/>
+    },
+    {
+      path: '/fichas/preencher/:templateId',
+      element: <RecordForm/>
+    },
+    {
+      path: '/fichas/historico',
+      element: <RecordHistory/>
+    },
+    {
+      path: '/fichas/historico/:patientId',
+      element: <RecordHistory/>
+    },
+    {
+      path: '/agenda',
+      element: <Agenda/>
+    },
+    {
       path: '/financeiro',
       element: <CobrancaList />
     },
@@ -124,6 +162,7 @@ const routeConfig = [
       path: '/financeiro/configuracao',
       element: <FinanceiroConfiguracao />
     }
+
 
     ]
   },

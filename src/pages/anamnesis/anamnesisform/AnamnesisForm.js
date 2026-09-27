@@ -35,7 +35,8 @@ function AnamnesisForm() {
   // Respostas textuais indexadas por fieldId: { [fieldId]: string }
   const [answers, setAnswers] = useState({});
 
-  // Arquivos locais indexados por fieldId: { [fieldId]: File }
+  // Arquivos locais indexados por fieldId: { [fieldId]: File[] } — mais de um PDF por
+  // campo é permitido; todos serão mesclados em um único arquivo ao salvar.
   const [files, setFiles] = useState({});
 
   // Arquivos já salvos no backend: { [fieldId]: { hasFile, fileName } }
@@ -159,10 +160,22 @@ function AnamnesisForm() {
     setErrors((prev) => ({ ...prev, [fieldId]: undefined }));
   };
 
-  const handleFileChange = (fieldId, file) => {
+  const handleFileChange = (fieldId, fileList) => {
     if (isReadOnly) return;
-    setFiles((prev) => ({ ...prev, [fieldId]: file }));
+    setFiles((prev) => ({ ...prev, [fieldId]: fileList }));
     setErrors((prev) => ({ ...prev, [fieldId]: undefined }));
+  };
+
+  // Abre em nova aba o arquivo já salvo de um campo FILE
+  const handleViewFile = async (fieldId) => {
+    try {
+      const blob = await AnamnesisService.buscarArquivoCampo(anamnesisId, fieldId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error(err);
+      setAlert({ type: "error", message: "Erro ao abrir o arquivo." });
+    }
   };
 
   // ── Validação ─────────────────────────────────────────────────────────────────
@@ -174,7 +187,7 @@ function AnamnesisForm() {
       if (!field.required) return;
 
       if (field.fieldType === "FILE") {
-        const hasLocal = !!files[field.id];
+        const hasLocal = (files[field.id]?.length ?? 0) > 0;
         const hasSaved = savedFiles[field.id]?.hasFile;
         if (!hasLocal && !hasSaved) {
           errs[field.id] = "Este campo é obrigatório.";
@@ -209,10 +222,11 @@ function AnamnesisForm() {
           value: answers[f.id] ?? null,
         }));
 
-      // Monta array de arquivos: { fieldId, file }
-      const filesArray = Object.entries(files)
-        .filter(([, f]) => f !== null)
-        .map(([fieldId, file]) => ({ fieldId: Number(fieldId), file }));
+      // Monta array de arquivos: { fieldId, file } — um item por arquivo, mesmo quando
+      // um campo tem vários PDFs selecionados (o backend mescla os que compartilham fieldId)
+      const filesArray = Object.entries(files).flatMap(([fieldId, fileList]) =>
+        (fileList ?? []).map((file) => ({ fieldId: Number(fieldId), file }))
+      );
 
       await AnamnesisService.responderAnamnese(anamnesisId, answersArray, filesArray);
 
@@ -356,11 +370,12 @@ function AnamnesisForm() {
                 key={field.id}
                 field={field}
                 value={answers[field.id] ?? null}
-                file={files[field.id] ?? null}
+                files={files[field.id] ?? []}
                 hasFile={savedFiles[field.id]?.hasFile ?? false}
                 fileName={savedFiles[field.id]?.fileName ?? null}
                 onChange={handleChange}
                 onFileChange={handleFileChange}
+                onViewFile={anamnesisId ? handleViewFile : undefined}
                 isReadOnly={isReadOnly}
                 error={errors[field.id] ?? null}
               />

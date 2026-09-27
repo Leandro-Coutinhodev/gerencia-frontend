@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 
@@ -9,7 +10,30 @@ function ConfirmDialog({
   onCancel,
   confirmText = "Sim, excluir",
   cancelText = "Cancelar",
+  // Opcional: quando > 0, o botão de confirmar fica desabilitado por esse número de
+  // segundos ao abrir o diálogo — usado em ações destrutivas mais sensíveis (ex: excluir
+  // um paciente e todos os registros vinculados a ele). Não afeta quem não passar a prop.
+  confirmDelaySeconds = 0,
 }) {
+  const [secondsLeft, setSecondsLeft] = useState(confirmDelaySeconds);
+
+  useEffect(() => {
+    if (!isOpen || confirmDelaySeconds <= 0) return;
+    setSecondsLeft(confirmDelaySeconds);
+    const interval = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isOpen, confirmDelaySeconds]);
+
+  const waiting = confirmDelaySeconds > 0 && secondsLeft > 0;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -42,10 +66,11 @@ function ConfirmDialog({
               </button>
               <button
                 onClick={onConfirm}
+                disabled={waiting}
                 // -> Mudanças de cor aqui
-                className="px-6 py-2.5 rounded-lg bg-[#3367B1] text-white font-medium shadow hover:bg-[#2b5999] transition-colors w-full"
+                className="px-6 py-2.5 rounded-lg bg-[#3367B1] text-white font-medium shadow hover:bg-[#2b5999] transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#3367B1]"
               >
-                {confirmText}
+                {waiting ? `Aguarde... (${secondsLeft})` : confirmText}
               </button>
             </div>
           </motion.div>
