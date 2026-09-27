@@ -1,16 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import FinanceiroService from "../../../services/FinanceiroService";
-import DonutChart from "../../../components/donutchart/DonutChart";
-
-// Paleta de status validada pela skill dataviz (good/warning/critical) — CVD-safe,
-// deliberadamente distinta dos badges de texto de CobrancaList (que usam Tailwind
-// puro), mas com o mesmo significado semântico (verde/amarelo/vermelho).
-const DONUT_COLORS = {
-  PAGO: "#0ca30c",
-  PENDENTE: "#fab219",
-  ATRASADO: "#d03b3b",
-};
+import DonutChart, { DONUT_COLORS } from "../../../components/donutchart/DonutChart";
 
 const STATUS_LABEL = {
   PENDENTE: "Pendente",

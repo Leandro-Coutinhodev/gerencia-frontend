@@ -4,7 +4,16 @@ const RADIUS = (SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const CENTER = SIZE / 2;
 
-function DonutChart({ segments }) {
+// Paleta de status das cobranças, validada pela skill dataviz (good/warning/critical)
+// — CVD-safe. Extraída de DashboardFinanceiro.js (T10, dashboard-geral) pra ser
+// reaproveitada por qualquer card que precise do mesmo significado semântico.
+export const DONUT_COLORS = {
+  PAGO: "#0ca30c",
+  PENDENTE: "#fab219",
+  ATRASADO: "#d03b3b",
+};
+
+function DonutChart({ segments, ariaLabel = "Resumo de status das cobranças" }) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
 
   let acumulado = 0;
@@ -25,7 +34,7 @@ function DonutChart({ segments }) {
         height={SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         role="img"
-        aria-label="Resumo de status das cobranças"
+        aria-label={ariaLabel}
       >
         <circle
           cx={CENTER}
