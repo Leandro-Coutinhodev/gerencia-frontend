@@ -442,6 +442,23 @@ export default function ContractList() {
                                   label="Modelo"
                                   value={contract.templateName || "PDF Externo"} />
                                 <InfoRow
+                                  label="Valor"
+                                  value={contract.contractValue != null
+                                    ? Number(contract.contractValue)
+                                        .toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                                    : "—"} />
+                                <InfoRow
+                                  label="Vigência"
+                                  value={contract.startDate && contract.endDate
+                                    ? `${new Date(contract.startDate + "T00:00:00").toLocaleDateString("pt-BR")}`
+                                      + ` a ${new Date(contract.endDate + "T00:00:00").toLocaleDateString("pt-BR")}`
+                                    : "—"} />
+                                <InfoRow
+                                  label="Pagamento"
+                                  value={contract.paymentDate
+                                    ? new Date(contract.paymentDate + "T00:00:00").toLocaleDateString("pt-BR")
+                                    : "—"} />
+                                <InfoRow
                                   label="Criado em"
                                   value={contract.createdAt
                                     ? new Date(contract.createdAt)

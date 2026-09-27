@@ -2,7 +2,8 @@
 import { useState, useEffect, useRef } from "react";
 import {
   X, Upload, FileText, Check, Eye, ChevronRight,
-  User, Building2, AlertCircle, Sparkles, UserPlus, Trash2
+  User, Building2, AlertCircle, Sparkles, UserPlus, Trash2,
+  DollarSign, Calendar
 } from "lucide-react";
 import ContractService from "../../services/ContractService";
 import ContractTemplateService from "../../services/ContractTemplateService";
@@ -12,9 +13,9 @@ import Alert from "../../components/alert/Alert";
 
 // ── Labels dos steps ──────────────────────────────────────────────────────────
 
-const STEPS_SIGNING  = ["Modelo", "Responsável", "Paciente", "Variáveis",
+const STEPS_SIGNING  = ["Modelo", "Responsável", "Paciente", "Financeiro", "Variáveis",
                          "Participantes", "Prévia", "Confirmar"];
-const STEPS_EXTERNAL = ["Responsável", "Paciente", "Arquivo", "Confirmar"];
+const STEPS_EXTERNAL = ["Responsável", "Paciente", "Financeiro", "Arquivo", "Confirmar"];
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
@@ -29,6 +30,12 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
   const [patient,  setPatient]  = useState(null);
   const [guardian, setGuardian] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Dados financeiros — usados para controle financeiro e relatórios
+  const [contractValue, setContractValue] = useState("");
+  const [startDate,     setStartDate]     = useState("");
+  const [endDate,       setEndDate]       = useState("");
+  const [paymentDate,   setPaymentDate]   = useState("");
 
   // Modo signing
   const [templates,         setTemplates]         = useState([]);
@@ -52,6 +59,7 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
     setSelectedTemplate(null); setVariableValues({});
     setHasWitnesses(false); setWitnesses([]); setPreviewHtml("");
     setPdfFile(null); setTemplates([]);
+    setContractValue(""); setStartDate(""); setEndDate(""); setPaymentDate("");
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -92,7 +100,7 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
   // ── Prévia ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (mode === "signing" && step === 6 && selectedTemplate) {
+    if (mode === "signing" && step === 7 && selectedTemplate) {
       const vars = {
         responsavel_nome:     guardian?.name    || "[Nome do Responsável]",
         responsavel_cpf:      guardian?.cpf     || "[CPF]",
@@ -125,12 +133,18 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
 
   // ── Validação ────────────────────────────────────────────────────────────────
 
+  const isFinancialDataValid = () =>
+    !!contractValue && Number(contractValue) > 0 &&
+    !!startDate && !!endDate && !!paymentDate &&
+    endDate >= startDate;
+
   const canProceed = () => {
     if (mode === "signing") {
       if (step === 1) return !!selectedTemplate;
       if (step === 2) return !!guardian;
       if (step === 3) return !!patient;
-      if (step === 4) {
+      if (step === 4) return isFinancialDataValid();
+      if (step === 5) {
         const manual = (selectedTemplate?.variables || []).filter(v => !v.autoFilled);
         return manual.every(v => !v.required || !!variableValues[v.variableName]?.trim());
       }
@@ -138,7 +152,8 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
     if (mode === "external") {
       if (step === 1) return !!guardian;
       if (step === 2) return !!patient;
-      if (step === 3) return !!pdfFile;
+      if (step === 3) return isFinancialDataValid();
+      if (step === 4) return !!pdfFile;
     }
     return true;
   };
@@ -167,10 +182,21 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
           witnessUserIds: witnesses.length > 0
             ? witnesses.map(w => w.id)
             : undefined,
+          contractValue: Number(contractValue),
+          startDate,
+          endDate,
+          paymentDate,
         });
       } else {
         await ContractService.createExternal(
-          { patientId: patient.id, guardianId: guardian.id },
+          {
+            patientId: patient.id,
+            guardianId: guardian.id,
+            contractValue: Number(contractValue),
+            startDate,
+            endDate,
+            paymentDate,
+          },
           pdfFile
         );
       }
@@ -185,7 +211,7 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
 
   if (!isOpen) return null;
 
-  const totalSteps  = mode === "signing" ? 7 : 4;
+  const totalSteps  = mode === "signing" ? 8 : 5;
   const stepLabels  = mode === "signing" ? STEPS_SIGNING : STEPS_EXTERNAL;
   const isLastStep  = step === totalSteps;
   const manualVars  = (selectedTemplate?.variables || []).filter(v => !v.autoFilled);
@@ -411,8 +437,19 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
               />
             )}
 
-            {/* Step 4: Variáveis manuais */}
-            {mode === "signing" && step === 4 && (
+            {/* Step 4 (signing) / Step 3 (external): Dados financeiros */}
+            {((mode === "signing" && step === 4) ||
+              (mode === "external" && step === 3)) && (
+              <FinancialStep
+                contractValue={contractValue} setContractValue={setContractValue}
+                startDate={startDate} setStartDate={setStartDate}
+                endDate={endDate} setEndDate={setEndDate}
+                paymentDate={paymentDate} setPaymentDate={setPaymentDate}
+              />
+            )}
+
+            {/* Step 5: Variáveis manuais */}
+            {mode === "signing" && step === 5 && (
               <div>
                 <SectionTitle
                   title="Variáveis do contrato"
@@ -462,8 +499,8 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
               </div>
             )}
 
-            {/* Step 5: Participantes */}
-            {mode === "signing" && step === 5 && (
+            {/* Step 6: Participantes */}
+            {mode === "signing" && step === 6 && (
               <div>
                 <SectionTitle
                   title="Participantes e ordem de assinatura"
@@ -575,8 +612,8 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
               </div>
             )}
 
-            {/* Step 6: Pré-visualização */}
-            {mode === "signing" && step === 6 && (
+            {/* Step 7: Pré-visualização */}
+            {mode === "signing" && step === 7 && (
               <div>
                 <SectionTitle
                   title="Pré-visualização do contrato"
@@ -598,8 +635,8 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
               </div>
             )}
 
-            {/* Step 7: Confirmar */}
-            {mode === "signing" && step === 7 && (
+            {/* Step 8: Confirmar */}
+            {mode === "signing" && step === 8 && (
               <ConfirmPanel
                 title="Pronto para enviar!"
                 description="Ao confirmar, o contrato será gerado e o link de assinatura
@@ -609,6 +646,7 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
                   { icon: <User size={14} />,     label: "Responsável", value: guardian?.name },
                   { icon: <User size={14} />,     label: "Paciente",    value: patient?.name },
                   { icon: <Building2 size={14} />,label: "Contratada",  value: "LP Kids" },
+                  ...financialConfirmItems(contractValue, startDate, endDate, paymentDate),
                 ]}
               />
             )}
@@ -650,7 +688,7 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
               />
             )}
 
-            {mode === "external" && step === 3 && (
+            {mode === "external" && step === 4 && (
               <div>
                 <SectionTitle
                   title="Arquivo do contrato"
@@ -702,7 +740,7 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
               </div>
             )}
 
-            {mode === "external" && step === 4 && (
+            {mode === "external" && step === 5 && (
               <ConfirmPanel
                 title="Salvar contrato anexado"
                 description="O documento será registrado como contrato assinado externamente."
@@ -710,6 +748,7 @@ export default function CreateContractModal({ isOpen, onClose, onSuccess }) {
                   { icon: <User size={14} />,     label: "Responsável", value: guardian?.name },
                   { icon: <User size={14} />,     label: "Paciente",    value: patient?.name },
                   { icon: <FileText size={14} />, label: "Arquivo",     value: pdfFile?.name },
+                  ...financialConfirmItems(contractValue, startDate, endDate, paymentDate),
                 ]}
               />
             )}
@@ -831,6 +870,116 @@ function SectionTitle({ title, subtitle }) {
       {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
     </div>
   );
+}
+
+function FinancialStep({
+  contractValue, setContractValue, startDate, setStartDate,
+  endDate, setEndDate, paymentDate, setPaymentDate
+}) {
+  return (
+    <div>
+      <SectionTitle
+        title="Dados financeiros"
+        subtitle="Essas informações são obrigatórias e serão usadas para controle
+          financeiro e relatórios."
+      />
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Valor do contrato <span className="text-red-500 ml-1">*</span>
+          </label>
+          <div className="relative">
+            <DollarSign size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Ex: 650.00"
+              value={contractValue}
+              onChange={e => setContractValue(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2.5
+                text-sm focus:outline-none focus:ring-2 focus:ring-primary/30
+                focus:border-primary transition"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Data de início <span className="text-red-500 ml-1">*</span>
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5
+                text-sm focus:outline-none focus:ring-2 focus:ring-primary/30
+                focus:border-primary transition"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Data de fim <span className="text-red-500 ml-1">*</span>
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5
+                text-sm focus:outline-none focus:ring-2 focus:ring-primary/30
+                focus:border-primary transition"
+            />
+          </div>
+        </div>
+        {endDate && startDate && endDate < startDate && (
+          <p className="text-xs text-red-500 -mt-2">
+            A data de fim não pode ser anterior à data de início.
+          </p>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Data de pagamento <span className="text-red-500 ml-1">*</span>
+          </label>
+          <div className="relative">
+            <Calendar size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="date"
+              value={paymentDate}
+              onChange={e => setPaymentDate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2.5
+                text-sm focus:outline-none focus:ring-2 focus:ring-primary/30
+                focus:border-primary transition"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatDateBR(isoDate) {
+  if (!isoDate) return null;
+  const [y, m, d] = isoDate.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function formatCurrencyBR(value) {
+  const n = Number(value);
+  if (!value || Number.isNaN(n)) return null;
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function financialConfirmItems(contractValue, startDate, endDate, paymentDate) {
+  return [
+    { icon: <DollarSign size={14} />, label: "Valor",     value: formatCurrencyBR(contractValue) },
+    { icon: <Calendar size={14} />,   label: "Início",     value: formatDateBR(startDate) },
+    { icon: <Calendar size={14} />,   label: "Fim",        value: formatDateBR(endDate) },
+    { icon: <Calendar size={14} />,   label: "Pagamento",  value: formatDateBR(paymentDate) },
+  ];
 }
 
 function PersonStep({ title, subtitle, person, personLabel, onSearch,
