@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Eye, Pencil, Trash2, ChevronDown, UserPlus, Link2, Check } from "lucide-react";
 import PatientsService from "../../services/PatientsService";
 import CadastroPacientesModal from "../../modal/cadastropacientesmodal/CadastroPacientesModal";
+import VisualizarPacienteModal from "../../modal/visualizarpacientemodal/VisualizarPacienteModal";
 import Alert from "../../components/alert/Alert";
 import ConfirmDialog from "../../components/confirm/ConfirmDialog";
 import config from "../../config/Config";
@@ -17,6 +18,7 @@ function PatientList() {
   const [patientToDelete, setPatientToDelete] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [viewPatient, setViewPatient] = useState(null);
   const dropdownRef = useRef(null);
 
   const host = config.URLS.PUB;
@@ -208,7 +210,11 @@ function PatientList() {
                   <td className="py-2 px-4">{patient.guardian?.name || "-"}</td>
                   <td className="py-2 px-4">{patient.guardian?.phoneNumber1 || "-"}</td>
                   <td className="py-2 px-4 flex justify-center gap-3">
-                    <button className="text-primary hover:text-blue-800">
+                    <button
+                      className="text-primary hover:text-blue-800"
+                      title="Visualizar paciente"
+                      onClick={() => setViewPatient(patient)}
+                    >
                       <Eye size={18} />
                     </button>
                     <button
@@ -248,6 +254,12 @@ function PatientList() {
         }}
         onSave={handleSave}
         initialData={editPatient}
+      />
+
+      <VisualizarPacienteModal
+        isOpen={!!viewPatient}
+        paciente={viewPatient}
+        onClose={() => setViewPatient(null)}
       />
 
       <ConfirmDialog

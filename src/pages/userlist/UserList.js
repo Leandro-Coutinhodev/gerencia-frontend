@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import UsuariosService from "../../services/UsuariosService";
 import CadastroUsuariosModal from "../../modal/cadastrousuariosmodal/CadastroUsuariosModal";
+import VisualizarUsuarioModal from "../../modal/visualizarusuariomodal/VisualizarUsuarioModal";
 import Alert from "../../components/alert/Alert";
 import ConfirmDialog from "../../components/confirm/ConfirmDialog";
 
@@ -13,6 +14,7 @@ function UserList() {
   const [alert, setAlert] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null); // <--- faltava isso
+  const [viewUser, setViewUser] = useState(null);
 
   const fetchUsers = async () => {
     try {
@@ -152,7 +154,11 @@ function UserList() {
                         .join(", ")}
                   </td>
                   <td className="py-2 px-4 flex justify-center gap-3">
-                    <button className="text-primary hover:text-blue-800">
+                    <button
+                      className="text-primary hover:text-blue-800"
+                      title="Visualizar usuário"
+                      onClick={() => setViewUser(user)}
+                    >
                       <Eye size={18} />
                     </button>
                     <button
@@ -192,6 +198,12 @@ function UserList() {
         }}
         onSave={handleSave}
         initialData={editUser}
+      />
+
+      <VisualizarUsuarioModal
+        isOpen={!!viewUser}
+        usuario={viewUser}
+        onClose={() => setViewUser(null)}
       />
 
       <ConfirmDialog

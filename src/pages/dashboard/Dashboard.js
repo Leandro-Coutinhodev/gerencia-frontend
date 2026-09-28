@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown, Send, FileText, LogOut, Form, FormInput, LayoutGrid, Dumbbell, ClipboardList, CalendarClock } from "lucide-react";
+import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown, Send, FileText, LogOut, LayoutGrid, Dumbbell, ClipboardList, CalendarClock, DollarSign } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { jwtDecode } from "jwt-decode";
 import ConfirmDialog from "../../components/confirm/ConfirmDialog";
@@ -270,6 +270,10 @@ function Dashboard() {
                                 <ClipboardList size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
                                 {sidebarOpen && <span>Fichas por Paciente</span>}
                             </Link>
+                        </div>
+                    )}
+
+                    {/* MENU FINANCEIRO */}
                     {(user?.scope === "SECRETARY" || user?.scope === "ADMIN") && (
                         <div>
                             <button

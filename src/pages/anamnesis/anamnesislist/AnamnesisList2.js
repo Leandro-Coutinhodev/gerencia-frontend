@@ -59,7 +59,7 @@ export default function AnamnesisList2() {
             return item.patientName?.toLowerCase().includes(lower);
           }
           // Na aba de referrals, busca pelo nome do paciente
-          return item.anamnesis?.patient?.name?.toLowerCase().includes(lower);
+          return item.patientName?.toLowerCase().includes(lower);
         })
       );
     }
@@ -80,8 +80,8 @@ export default function AnamnesisList2() {
     await fetchAnamneses();
   };
 
-  const handleViewHistory = (referralId) => {
-    navigate(`/paciente/encaminhar/historico/${referralId}`);
+  const handleViewHistory = (patientId) => {
+    navigate(`/paciente/encaminhar/historico/${patientId}`);
   };
 
   if (loading) return <p>Carregando dados...</p>;
@@ -170,7 +170,10 @@ export default function AnamnesisList2() {
                     <th className="py-3 px-4 text-left font-medium">
                       Responsável
                     </th>
-                    <th className="py-3 px-4 text-left font-medium">Assistente</th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      Encaminhado para
+                    </th>
+                    <th className="py-3 px-4 text-left font-medium">Enviado por</th>
                     <th className="py-3 px-4 text-center font-medium">Ações</th>
                   </>
                 )}
@@ -239,7 +242,7 @@ export default function AnamnesisList2() {
                   ) : (
                     <tr key={item.id} className="border-b hover:bg-gray-50 transition-colors">
                       <td className="py-3 px-4">
-                        {item.anamnesis?.patient?.name || "-"}
+                        {item.patientName || "-"}
                       </td>
                       <td className="py-3 px-4">
                         {item.sentAt
@@ -247,17 +250,20 @@ export default function AnamnesisList2() {
                           : "-"}
                       </td>
                       <td className="py-3 px-4">
-                        {item.anamnesis?.patient?.guardian?.name || "-"}
+                        {item.guardianName || "-"}
                       </td>
                       <td className="py-3 px-4">
-                        {item.assistant?.name || "-"}
+                        {item.professionalName || "Não atribuído"}
+                      </td>
+                      <td className="py-3 px-4">
+                        {item.senderName || "-"}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex justify-center gap-3">
                           <button
                             className="text-primary hover:text-primary/70 transition"
                             title="Visualizar histórico"
-                            onClick={() => handleViewHistory(item.id)}
+                            onClick={() => handleViewHistory(item.patientId)}
                           >
                             <Eye size={18} />
                           </button>
@@ -269,7 +275,7 @@ export default function AnamnesisList2() {
               ) : (
                 <tr>
                   <td
-                    colSpan={activeTab === "anamneses" ? 6 : 5}
+                    colSpan={6}
                     className="py-8 text-center text-gray-500"
                   >
                     Nenhum registro encontrado

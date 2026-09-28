@@ -112,8 +112,9 @@ const AnamnesisService = {
     return response.data;
   },
 
+  // Histórico de encaminhamento de um paciente (todas as anamneses dele)
   listarHistorico: async (patientId) => {
-    const response = await api.get(`/anamnesis/referral/${patientId}`);
+    const response = await api.get(`/anamnesis/referral/patient/${patientId}`);
     return response.data;
   },
   relReferral: async (referralId) => {

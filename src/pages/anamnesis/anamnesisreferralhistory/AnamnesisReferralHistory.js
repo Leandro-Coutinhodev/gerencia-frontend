@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CalendarDays, ExternalLink } from "lucide-react";
+import { CalendarDays, ExternalLink, AlertCircle } from "lucide-react";
 import PatientsService from "../../../services/PatientsService";
 import AnamnesisService from "../../../services/AnamnesisService";
 
@@ -11,6 +11,7 @@ export default function AnamnesisReferralHistory() {
   const [patient, setPatient] = useState(null);
   const [referrals, setReferrals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const formatDisplayDate = (rawDate) => {
     if (!rawDate) return "—";
@@ -19,15 +20,27 @@ export default function AnamnesisReferralHistory() {
   };
 
   useEffect(() => {
+    // Duas buscas independentes: uma falhar não deve impedir a outra de rodar,
+    // e um erro real de carregamento precisa aparecer — não pode parecer "sem registros".
     const carregarDados = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
         const paciente = await PatientsService.buscarPorId(patientId);
         setPatient(paciente);
-
-        const historico = await AnamnesisService.listarHistorico(patientId);
-        setReferrals(historico || []);
       } catch (err) {
-        console.error("Erro ao carregar histórico:", err);
+        console.error("Erro ao carregar paciente:", err);
+      }
+
+      try {
+        const historico = await AnamnesisService.listarHistorico(patientId);
+        setReferrals(Array.isArray(historico) ? historico : []);
+      } catch (err) {
+        console.error("Erro ao carregar histórico de encaminhamento:", err);
+        setError(
+          "Não foi possível carregar o histórico de encaminhamento. Tente novamente mais tarde."
+        );
       } finally {
         setLoading(false);
       }
@@ -102,7 +115,15 @@ export default function AnamnesisReferralHistory() {
       <div>
         <h2 className="font-semibold mb-3">Encaminhamentos Realizados</h2>
 
-        {groupedByDay.length === 0 ? (
+        {error && (
+          <div className="flex items-center gap-3 bg-red-50 border border-red-200
+            rounded-xl px-4 py-3 mb-4">
+            <AlertCircle size={16} className="text-red-400 flex-shrink-0" />
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
+        {!error && groupedByDay.length === 0 ? (
           <p className="text-gray-500">Nenhum encaminhamento encontrado.</p>
         ) : (
           groupedByDay.map((group) => {
@@ -123,7 +144,7 @@ export default function AnamnesisReferralHistory() {
                 {/* Linha do tempo */}
                 <div className="relative ml-5 pl-6 border-l-4 border-grey-400">
                   {group.items.map((r) => (
-                    <div key={r.referralId} className="mb-8 relative">
+                    <div key={r.id} className="mb-8 relative">
                       {/* Ícone calendário */}
                       <span className="absolute -left-7 top-3 flex items-center justify-center w-7 h-7 bg-blue-500 rounded text-white shadow">
                         <CalendarDays size={14} />
@@ -133,19 +154,19 @@ export default function AnamnesisReferralHistory() {
                       <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
                         <h3 className="font-semibold text-gray-800 mb-3">Encaminhamento do paciente</h3>
                         <p className="text-sm text-gray-700 mb-1">
-                          <span className="font-semibold">Assistente: </span>
-                          {r.assistantName || "Não vinculado"}
+                          <span className="font-semibold">Enviado por: </span>
+                          {r.senderName || "Desconhecido"}
                         </p>
                         <p className="text-sm text-gray-700">
-                          <span className="font-semibold">Responsável: </span>
-                          {r.professionalName || "Desconhecido"}
+                          <span className="font-semibold">Encaminhado para: </span>
+                          {r.professionalName || "Não atribuído"}
                         </p>
 
                         {/* Botão Visualizar */}
                         <div className="mt-4">
                           <button
                             onClick={() =>
-                              navigate(`/encaminhamento/${r.referralId}`)
+                              navigate(`/relatorios/${r.id}`)
                             }
                             className="inline-flex items-center gap-2 border border-primary text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-all text-sm font-medium"
                           >
