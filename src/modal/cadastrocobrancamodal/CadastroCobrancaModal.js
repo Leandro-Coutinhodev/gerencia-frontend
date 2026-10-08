@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import BuscarPacienteModal from "../buscarpacientemodal/BuscarPacienteModal";
+import ContractService from "../../services/ContractService";
+import { sugerirVencimento } from "../../utils/vencimentoContrato";
 
 const FORMAS_PAGAMENTO = [
   { value: "PIX", label: "Pix" },
@@ -17,6 +19,9 @@ function CadastroCobrancaModal({ isOpen, onClose, onSave, initialData }) {
   const [desconto, setDesconto] = useState("");
   const [formaPagamento, setFormaPagamento] = useState("PIX");
   const [vencimento, setVencimento] = useState("");
+  // Vencimento sugerido pelo contrato do paciente ({ data, dia }) — ver AD-022
+  const [sugestao, setSugestao] = useState(null);
+  const pacienteAtualRef = useRef(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -26,6 +31,8 @@ function CadastroCobrancaModal({ isOpen, onClose, onSave, initialData }) {
       setDesconto("");
       setFormaPagamento("PIX");
       setVencimento("");
+      setSugestao(null);
+      pacienteAtualRef.current = null;
       setError("");
       return;
     }
@@ -41,6 +48,25 @@ function CadastroCobrancaModal({ isOpen, onClose, onSave, initialData }) {
   }, [isOpen, initialData]);
 
   if (!isOpen) return null;
+
+  const selecionarPaciente = async (p) => {
+    setPaciente(p);
+    setBuscarPacienteOpen(false);
+    // Edição mantém o vencimento salvo; só cobrança nova recebe sugestão
+    if (isEditing) return;
+    pacienteAtualRef.current = p.id;
+    let nova = null;
+    try {
+      nova = sugerirVencimento(await ContractService.getByPatient(p.id));
+    } catch {
+      nova = null; // sem sugestão, campo segue manual como antes
+    }
+    // Paciente trocado enquanto a busca rodava: ignora a resposta antiga
+    if (pacienteAtualRef.current !== p.id) return;
+    // Não sobrescreve uma data digitada à mão — só vazio ou a sugestão anterior
+    setVencimento((atual) => (!atual || atual === sugestao?.data ? nova?.data ?? "" : atual));
+    setSugestao(nova);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -162,6 +188,11 @@ function CadastroCobrancaModal({ isOpen, onClose, onSave, initialData }) {
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
+                {sugestao && vencimento === sugestao.data && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Sugerido pelo contrato (vence todo dia {sugestao.dia})
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -187,10 +218,7 @@ function CadastroCobrancaModal({ isOpen, onClose, onSave, initialData }) {
       <BuscarPacienteModal
         isOpen={buscarPacienteOpen}
         onClose={() => setBuscarPacienteOpen(false)}
-        onSelectPaciente={(p) => {
-          setPaciente(p);
-          setBuscarPacienteOpen(false);
-        }}
+        onSelectPaciente={selecionarPaciente}
       />
     </div>
   );
