@@ -96,7 +96,8 @@ function Home() {
           />
         )}
 
-        {(scope === "ADMIN" || scope === "SECRETARY" || scope === "PROFESSIONAL") && (
+        {/* /appointments só libera ADMIN e PROFESSIONAL no backend */}
+        {(scope === "ADMIN" || scope === "PROFESSIONAL") && (
           <AgendamentoHojeCard />
         )}
       </div>
