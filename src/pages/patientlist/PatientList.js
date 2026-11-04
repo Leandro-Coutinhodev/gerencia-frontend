@@ -193,6 +193,7 @@ function PatientList() {
             <tr className="bg-gray-100 text-left text-gray-600">
               <th className="py-2 px-4 text-primary">Nome</th>
               <th className="py-2 px-4 text-primary">CPF</th>
+              <th className="py-2 px-4 text-primary">Status</th>
               <th className="py-2 px-4 text-primary">Responsável</th>
               <th className="py-2 px-4 text-primary">Telefone</th>
               <th className="py-2 px-4 text-center text-primary">Ações</th>
@@ -207,6 +208,18 @@ function PatientList() {
                 >
                   <td className="py-2 px-4">{patient.name}</td>
                   <td className="py-2 px-4">{patient.cpf}</td>
+                  <td className="py-2 px-4">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5
+                      rounded-full text-xs font-medium
+                      ${patient.status === "ATIVO"
+                        ? "bg-green-50 text-green-700"
+                        : "bg-gray-100 text-gray-500"
+                      }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full
+                        ${patient.status === "ATIVO" ? "bg-green-500" : "bg-gray-400"}`} />
+                      {patient.status === "ATIVO" ? "Ativo" : "Inativo"}
+                    </span>
+                  </td>
                   <td className="py-2 px-4">{patient.guardian?.name || "-"}</td>
                   <td className="py-2 px-4">{patient.guardian?.phoneNumber1 || "-"}</td>
                   <td className="py-2 px-4 flex justify-center gap-3">
