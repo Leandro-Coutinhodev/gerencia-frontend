@@ -234,8 +234,8 @@ function Dashboard() {
                         </NavGroup>
                     )}
 
-                    {/* MENU FINANCEIRO */}
-                    {(user?.scope === "SECRETARY" || user?.scope === "ADMIN") && (
+                    {/* MENU FINANCEIRO — exclusivo do ADMIN */}
+                    {user?.scope === "ADMIN" && (
                         <NavGroup id="financeiro" icon={DollarSign} label="Financeiro">
                             <Link to="/financeiro" className={subLinkClass} onClick={() => setActiveMenu("financeiro")}>
                                 Cobranças
@@ -246,68 +246,9 @@ function Dashboard() {
                             <Link to="/financeiro/relatorio" className={subLinkClass} onClick={() => setActiveMenu("financeiro")}>
                                 Dashboard Financeiro
                             </Link>
-                            {user?.scope === "ADMIN" && (
-                                <Link to="/financeiro/configuracao" className={subLinkClass} onClick={() => setActiveMenu("financeiro")}>
-                                    Configurações
-                                </Link>
-                    {/* MENU FINANCEIRO — exclusivo do ADMIN */}
-                    {user?.scope === "ADMIN" && (
-                        <div>
-                            <button
-                                className={`w-full flex items-center justify-between p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${
-                                    activeMenu === "financeiro" ? "bg-blue-50 text-blue-600" : ""
-                                }`}
-                                onClick={() => setOpenFinanceiroSubMenu(!openFinanceiroSubMenu)}
-                                title="Financeiro"
-                            >
-                                <div className="flex items-center">
-                                    <DollarSign size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                                    {sidebarOpen && <span>Financeiro</span>}
-                                </div>
-                                {sidebarOpen && (
-                                    <ChevronDown
-                                        size={18}
-                                        className={`transform transition-transform ${
-                                            openFinanceiroSubMenu ? "rotate-180" : ""
-                                        }`}
-                                    />
-                                )}
-                            </button>
-
-                            {openFinanceiroSubMenu && sidebarOpen && (
-                                <div className="ml-8 mt-1 space-y-1">
-                                    <Link
-                                        to="/financeiro"
-                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                                        onClick={() => setActiveMenu("financeiro")}
-                                    >
-                                        Cobranças
-                                    </Link>
-                                    <Link
-                                        to="/financeiro/despesas"
-                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                                        onClick={() => setActiveMenu("financeiro")}
-                                    >
-                                        Despesas
-                                    </Link>
-                                    <Link
-                                        to="/financeiro/relatorio"
-                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                                        onClick={() => setActiveMenu("financeiro")}
-                                    >
-                                        Dashboard Financeiro
-                                    </Link>
-                                    {user?.scope === "ADMIN" && (
-                                        <Link
-                                            to="/financeiro/configuracao"
-                                            className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                                            onClick={() => setActiveMenu("financeiro")}
-                                        >
-                                            Configurações
-                                        </Link>
-                                    )}
-                                </div>
-                            )}
+                            <Link to="/financeiro/configuracao" className={subLinkClass} onClick={() => setActiveMenu("financeiro")}>
+                                Configurações
+                            </Link>
                         </NavGroup>
                     )}
                 </nav>
