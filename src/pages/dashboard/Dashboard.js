@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { User, Users, Calendar, Home, ChevronLeft, UserCircle2, ChevronDown, Send, FileText, LogOut, LayoutGrid, Dumbbell, ClipboardList, CalendarClock, DollarSign } from "lucide-react";
+import { User, Users, Home, ChevronLeft, ChevronDown, LogOut, CalendarClock, ClipboardList, DollarSign, FileText } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { jwtDecode } from "jwt-decode";
 import ConfirmDialog from "../../components/confirm/ConfirmDialog";
@@ -8,8 +8,10 @@ function Dashboard() {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [activeMenu, setActiveMenu] = useState("");
-    const [openSubMenu, setOpenSubMenu] = useState(false);
-    const [openFinanceiroSubMenu, setOpenFinanceiroSubMenu] = useState(false);
+    // Submenus funcionam como acordeão: abrir um grupo fecha o outro, pra manter o
+    // menu lateral limpo mesmo com muitas opções.
+    const [openGroup, setOpenGroup] = useState(null);
+    const toggleGroup = (id) => setOpenGroup((prev) => (prev === id ? null : id));
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -56,9 +58,55 @@ function Dashboard() {
     };
 
     const navLinkClass = (menu) =>
-        `flex items-center p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${
-            activeMenu === menu ? "bg-blue-50 text-blue-600" : ""
+        `flex items-center p-2.5 rounded-xl font-medium transition-all ${
+            activeMenu === menu
+                ? "bg-primary text-white shadow-sm shadow-primary/25"
+                : "text-gray-600 hover:bg-primary/5 hover:text-primary"
         }`;
+
+    const groupToggleClass = (id) =>
+        `w-full flex items-center justify-between p-2.5 rounded-xl font-medium transition-all ${
+            openGroup === id
+                ? "bg-primary text-white shadow-sm shadow-primary/25"
+                : "text-gray-600 hover:bg-primary/5 hover:text-primary"
+        }`;
+
+    const subLinkClass = "block px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-primary/5 hover:text-primary transition-colors";
+
+    // Grupo de menu recolhível: generaliza o padrão de acordeão que antes só existia
+    // para "Gerenciar Pacientes" e "Financeiro", agora reaproveitado por todos os grupos.
+    const NavGroup = ({ id, icon: Icon, label, children }) => (
+        <div>
+            <button className={groupToggleClass(id)} onClick={() => toggleGroup(id)} title={label}>
+                <div className="flex items-center min-w-0">
+                    <Icon size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
+                    {sidebarOpen && <span className="truncate">{label}</span>}
+                </div>
+                {sidebarOpen && (
+                    <ChevronDown
+                        size={18}
+                        className={`shrink-0 ml-2 transform transition-transform ${openGroup === id ? "rotate-180" : ""}`}
+                    />
+                )}
+            </button>
+            {openGroup === id && sidebarOpen && (
+                <div className="ml-8 mt-1 space-y-1">{children}</div>
+            )}
+        </div>
+    );
+
+    const initials = (user?.name || "")
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((n) => n[0]?.toUpperCase())
+        .join("") || "?";
+
+    const roleLabel =
+        user?.scope === "ADMIN" ? "Gestor" :
+        user?.scope === "SECRETARY" ? "Secretária" :
+        user?.scope === "PROFESSIONAL" ? "Profissional" :
+        user?.scope === "ASSISTANT" ? "Assistente" : "";
 
     return (
         <div className="flex h-screen bg-gray-50">
@@ -66,16 +114,18 @@ function Dashboard() {
             <aside
                 className={`${
                     sidebarOpen ? "w-64" : "w-16"
-                } bg-white shadow-md flex flex-col transition-all duration-300 overflow-hidden`}
+                } bg-white border-r border-gray-100 flex flex-col transition-all duration-300 overflow-hidden`}
             >
                 {/* Cabeçalho */}
-                <div className="flex items-center justify-between p-4 h-16 min-w-0">
-                    <div className="flex items-center space-x-2 overflow-hidden">
-                        <img
-                            src="/assets/icone_menu/icone.png"
-                            alt="icone"
-                            className="w-8 h-8 object-contain shrink-0"
-                        />
+                <div className="flex items-center justify-between p-4 h-20 min-w-0 border-b border-gray-100">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+                            <img
+                                src="/assets/icone_menu/icone.png"
+                                alt="icone"
+                                className="w-6 h-6 object-contain"
+                            />
+                        </div>
                         {sidebarOpen && (
                             <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">
                                 <span className="text-gray-800">GERENC</span>
@@ -85,7 +135,7 @@ function Dashboard() {
                     </div>
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-1.5 rounded-full hover:bg-blue-50 text-primary shrink-0"
+                        className="p-1.5 rounded-full hover:bg-primary/5 text-primary shrink-0 transition-colors"
                     >
                         <ChevronLeft
                             size={20}
@@ -97,7 +147,7 @@ function Dashboard() {
                 </div>
 
                 {/* Navegação */}
-                <nav className="flex-1 p-2 space-y-1">
+                <nav className="flex-1 p-2.5 space-y-1 overflow-y-auto">
                     <Link
                         to="/"
                         className={navLinkClass("home")}
@@ -121,110 +171,40 @@ function Dashboard() {
                     )}
 
                     {user?.scope === "ADMIN" && (
-                        <Link
-                            to="/usuarios"
-                            className={navLinkClass("users")}
-                            onClick={() => setActiveMenu("users")}
-                            title="Gerenciar Usuários"
-                        >
-                            <Users size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                            {sidebarOpen && <span>Gerenciar Usuários</span>}
-                        </Link>
+                        <NavGroup id="admin" icon={Users} label="Administração">
+                            <Link to="/usuarios" className={subLinkClass} onClick={() => setActiveMenu("users")}>
+                                Gerenciar Usuários
+                            </Link>
+                            <Link to="/aniversariantes" className={subLinkClass} onClick={() => setActiveMenu("birthdays")}>
+                                Aniversariantes
+                            </Link>
+                        </NavGroup>
                     )}
 
-                    {user?.scope === "ADMIN" && (
-                        <Link
-                            to="/aniversariantes"
-                            className={navLinkClass("birthdays")}
-                            onClick={() => setActiveMenu("birthdays")}
-                            title="Aniversariantes"
-                        >
-                            <Calendar size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                            {sidebarOpen && <span>Aniversariantes</span>}
-                        </Link>
-                    )}
-
-                    {/* MENU GERENCIAR PACIENTES */}
+                    {/* MENU PACIENTES */}
                     {(user?.scope === "SECRETARY" || user?.scope === "ADMIN") && (
-                        <div>
-                            <button
-                                className={`w-full flex items-center justify-between p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${
-                                    activeMenu === "patients" ? "bg-blue-50 text-blue-600" : ""
-                                }`}
-                                onClick={() => setOpenSubMenu(!openSubMenu)}
-                                title="Gerenciar Pacientes"
-                            >
-                                <div className="flex items-center">
-                                    <User size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                                    {sidebarOpen && <span>Gerenciar Pacientes</span>}
-                                </div>
-                                {sidebarOpen && (
-                                    <ChevronDown
-                                        size={18}
-                                        className={`transform transition-transform ${
-                                            openSubMenu ? "rotate-180" : ""
-                                        }`}
-                                    />
-                                )}
-                            </button>
-
-                            {openSubMenu && sidebarOpen && (
-                                <div className="ml-8 mt-1 space-y-1">
-                                    <Link
-                                        to="/pacientes"
-                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                                    >
-                                        Cadastrar paciente
-                                    </Link>
-                                    <Link
-                                        to="/anamnese"
-                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                                    >
-                                        Encaminhar anamnese
-                                    </Link>
-                                </div>
+                        <NavGroup id="patients" icon={User} label="Pacientes">
+                            <Link to="/pacientes" className={subLinkClass} onClick={() => setActiveMenu("pacientes")}>
+                                Cadastrar paciente
+                            </Link>
+                            <Link to="/anamnese" className={subLinkClass} onClick={() => setActiveMenu("anamnese")}>
+                                Encaminhar anamnese
+                            </Link>
+                            <Link to="/anamnese/modelo" className={subLinkClass} onClick={() => setActiveMenu("modelos")}>
+                                Modelos de Anamnese
+                            </Link>
+                            <Link to="/contrato" className={subLinkClass} onClick={() => setActiveMenu("contrato")}>
+                                Contrato
+                            </Link>
+                            <Link to="/contrato/modelo" className={subLinkClass} onClick={() => setActiveMenu("contrato-modelo")}>
+                                Modelos de Contrato
+                            </Link>
+                            {user?.scope === "ADMIN" && (
+                                <Link to="/paciente/encaminhar" className={subLinkClass} onClick={() => setActiveMenu("encaminhar")}>
+                                    Encaminhar paciente
+                                </Link>
                             )}
-                            <Link
-                                to="/contrato/modelo"
-                                className={navLinkClass("contrato")}
-                                onClick={() => setActiveMenu("contrato")}
-                                title="Contrato"
-                            >
-                                <LayoutGrid size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                                {sidebarOpen && <span>Modelos de Contrato</span>}
-                            </Link>
-
-                            <Link
-                                to="/contrato"
-                                className={navLinkClass("contrato")}
-                                onClick={() => setActiveMenu("contrato")}
-                                title="Contrato"
-                            >
-                                <FileText size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                                {sidebarOpen && <span>Contrato</span>}
-                            </Link>
-                            <Link
-                                to="/anamnese/modelo"
-                                className={navLinkClass("modelos")}
-                                onClick={() => setActiveMenu("modelos")}
-                                title="Modelos de anamnese"
-                            >
-                                <LayoutGrid size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                                {sidebarOpen && <span>Modelos de Anamnese</span>}
-                            </Link>
-                        </div>
-                    )}
-
-                    {( user?.scope === "ADMIN") && (
-                        <Link
-                            to="/paciente/encaminhar"
-                            className={navLinkClass("encaminhar")}
-                            onClick={() => setActiveMenu("encaminhar")}
-                            title="Encaminhar paciente"
-                        >
-                            <Send size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                            {sidebarOpen && <span>Encaminhar paciente</span>}
-                        </Link>
+                        </NavGroup>
                     )}
 
                     {(user?.scope === "PROFESSIONAL" || user?.scope === "ADMIN") && (
@@ -241,131 +221,71 @@ function Dashboard() {
 
                     {/* MENU FICHAS DE ATENDIMENTO */}
                     {(user?.scope === "PROFESSIONAL" || user?.scope === "ADMIN") && (
-                        <div>
-                            
-                            <Link
-                                to="/atividades"
-                                className={navLinkClass("atividades")}
-                                onClick={() => setActiveMenu("atividades")}
-                                title="Banco de Atividades"
-                            >
-                                <Dumbbell size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                                {sidebarOpen && <span>Banco de Atividades</span>}
+                        <NavGroup id="fichas" icon={ClipboardList} label="Fichas/Atendimento">
+                            <Link to="/atividades" className={subLinkClass} onClick={() => setActiveMenu("atividades")}>
+                                Banco de Atividades
                             </Link>
-                            <Link
-                                to="/fichas/modelo"
-                                className={navLinkClass("fichas-modelo")}
-                                onClick={() => setActiveMenu("fichas-modelo")}
-                                title="Modelos de Ficha"
-                            >
-                                <LayoutGrid size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                                {sidebarOpen && <span>Modelos de Ficha</span>}
+                            <Link to="/fichas/modelo" className={subLinkClass} onClick={() => setActiveMenu("fichas-modelo")}>
+                                Modelos de Ficha
                             </Link>
-                            <Link
-                                to="/fichas/historico"
-                                className={navLinkClass("fichas-historico")}
-                                onClick={() => setActiveMenu("fichas-historico")}
-                                title="Fichas por Paciente"
-                            >
-                                <ClipboardList size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                                {sidebarOpen && <span>Fichas por Paciente</span>}
+                            <Link to="/fichas/historico" className={subLinkClass} onClick={() => setActiveMenu("fichas-historico")}>
+                                Fichas por Paciente
                             </Link>
-                        </div>
+                        </NavGroup>
                     )}
 
                     {/* MENU FINANCEIRO */}
                     {(user?.scope === "SECRETARY" || user?.scope === "ADMIN") && (
-                        <div>
-                            <button
-                                className={`w-full flex items-center justify-between p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${
-                                    activeMenu === "financeiro" ? "bg-blue-50 text-blue-600" : ""
-                                }`}
-                                onClick={() => setOpenFinanceiroSubMenu(!openFinanceiroSubMenu)}
-                                title="Financeiro"
-                            >
-                                <div className="flex items-center">
-                                    <DollarSign size={20} className={`shrink-0 ${sidebarOpen ? "mr-3" : ""}`} />
-                                    {sidebarOpen && <span>Financeiro</span>}
-                                </div>
-                                {sidebarOpen && (
-                                    <ChevronDown
-                                        size={18}
-                                        className={`transform transition-transform ${
-                                            openFinanceiroSubMenu ? "rotate-180" : ""
-                                        }`}
-                                    />
-                                )}
-                            </button>
-
-                            {openFinanceiroSubMenu && sidebarOpen && (
-                                <div className="ml-8 mt-1 space-y-1">
-                                    <Link
-                                        to="/financeiro"
-                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                                        onClick={() => setActiveMenu("financeiro")}
-                                    >
-                                        Cobranças
-                                    </Link>
-                                    <Link
-                                        to="/financeiro/despesas"
-                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                                        onClick={() => setActiveMenu("financeiro")}
-                                    >
-                                        Despesas
-                                    </Link>
-                                    <Link
-                                        to="/financeiro/relatorio"
-                                        className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                                        onClick={() => setActiveMenu("financeiro")}
-                                    >
-                                        Dashboard Financeiro
-                                    </Link>
-                                    {user?.scope === "ADMIN" && (
-                                        <Link
-                                            to="/financeiro/configuracao"
-                                            className="block p-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                                            onClick={() => setActiveMenu("financeiro")}
-                                        >
-                                            Configurações
-                                        </Link>
-                                    )}
-                                </div>
+                        <NavGroup id="financeiro" icon={DollarSign} label="Financeiro">
+                            <Link to="/financeiro" className={subLinkClass} onClick={() => setActiveMenu("financeiro")}>
+                                Cobranças
+                            </Link>
+                            <Link to="/financeiro/despesas" className={subLinkClass} onClick={() => setActiveMenu("financeiro")}>
+                                Despesas
+                            </Link>
+                            <Link to="/financeiro/relatorio" className={subLinkClass} onClick={() => setActiveMenu("financeiro")}>
+                                Dashboard Financeiro
+                            </Link>
+                            {user?.scope === "ADMIN" && (
+                                <Link to="/financeiro/configuracao" className={subLinkClass} onClick={() => setActiveMenu("financeiro")}>
+                                    Configurações
+                                </Link>
                             )}
-                        </div>
+                        </NavGroup>
                     )}
                 </nav>
             </aside>
 
             {/* Conteúdo principal */}
             <div className="flex-1 flex flex-col min-w-0">
-                <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-6">
+                <header className="h-20 bg-white/95 backdrop-blur-sm border-b border-gray-100 flex items-center justify-end px-6 sm:px-8 sticky top-0 z-30">
                     <div className="relative" ref={userDropdownRef}>
                         <button
                             onClick={() => setShowUserDropdown(!showUserDropdown)}
-                            className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                            className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors group"
                         >
-                            <UserCircle2 size={28} className="text-gray-500" />
-                            <span className="text-sm font-medium text-gray-700">
-                                Olá, {user?.name}
+                            <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-sm shadow-primary/20">
+                                {initials}
+                            </div>
+                            <span className="text-left hidden sm:block">
+                                <span className="flex items-center gap-1 text-sm font-semibold text-gray-800 group-hover:text-primary transition-colors">
+                                    {user?.name}
+                                    <ChevronDown
+                                        size={14}
+                                        className={`text-gray-400 transition-transform ${
+                                            showUserDropdown ? "rotate-180" : ""
+                                        }`}
+                                    />
+                                </span>
+                                <span className="block text-xs text-gray-400">{roleLabel}</span>
                             </span>
-                            <ChevronDown
-                                size={16}
-                                className={`text-gray-500 transition-transform ${
-                                    showUserDropdown ? "rotate-180" : ""
-                                }`}
-                            />
                         </button>
 
                         {showUserDropdown && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
                                 <div className="px-4 py-3 border-b border-gray-100">
-                                    <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                                    <p className="text-xs text-gray-500 mt-0.5">
-                                        {user?.scope === "ADMIN" && "Gestor"}
-                                        {user?.scope === "SECRETARY" && "Secretária"}
-                                        {user?.scope === "PROFESSIONAL" && "Profissional"}
-                                        {user?.scope === "ASSISTANT" && "Assistente"}
-                                    </p>
+                                    <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{roleLabel}</p>
                                 </div>
                                 <button
                                     onClick={handleLogoutClick}

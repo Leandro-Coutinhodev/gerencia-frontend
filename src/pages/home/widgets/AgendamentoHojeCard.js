@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CalendarClock } from "lucide-react";
 import AppointmentService from "../../../services/AppointmentService";
 import DonutChart from "../../../components/donutchart/DonutChart";
 
@@ -56,8 +57,13 @@ function AgendamentoHojeCard() {
   }, []);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Agendamentos de Hoje</h3>
+    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 sm:p-6">
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+          <CalendarClock size={17} className="text-indigo-600" />
+        </div>
+        <h3 className="text-sm font-semibold text-gray-800">Agendamentos de Hoje</h3>
+      </div>
 
       {loading ? (
         <p className="text-sm text-gray-500">Carregando...</p>

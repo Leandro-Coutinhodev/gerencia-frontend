@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { DollarSign } from "lucide-react";
 import DonutChart, { DONUT_COLORS } from "../../../components/donutchart/DonutChart";
 
 function formatarReais(valor) {
@@ -14,10 +15,15 @@ function FinanceiroResumoCard({ data, loading, error }) {
     data.statusAtrasadoContagem === 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-sm font-semibold text-gray-700">Financeiro</h3>
-        <button onClick={() => navigate("/financeiro/relatorio")} className="text-xs text-primary hover:underline">
+    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 sm:p-6">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+            <DollarSign size={17} className="text-emerald-600" />
+          </div>
+          <h3 className="text-sm font-semibold text-gray-800">Financeiro</h3>
+        </div>
+        <button onClick={() => navigate("/financeiro/relatorio")} className="text-xs font-medium text-primary hover:underline">
           Ver dashboard
         </button>
       </div>

@@ -55,11 +55,25 @@ export default function VisualizarPacienteModal({ isOpen, onClose, paciente }) {
         </div>
 
         <div className="px-6 py-5 overflow-y-auto space-y-5">
+          <div className="flex items-center justify-between">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full
+              text-xs font-medium
+              ${paciente.status === "ATIVO"
+                ? "bg-green-50 text-green-700"
+                : "bg-gray-100 text-gray-500"
+              }`}>
+              <span className={`w-1.5 h-1.5 rounded-full
+                ${paciente.status === "ATIVO" ? "bg-green-500" : "bg-gray-400"}`} />
+              {paciente.status === "ATIVO" ? "Ativo" : "Inativo"}
+            </span>
+          </div>
+
           <div className="bg-gray-50 border border-gray-100 rounded-xl divide-y divide-gray-100">
             <InfoRow label="Nome" value={paciente.name} />
             <InfoRow label="CPF" value={paciente.cpf} />
             <InfoRow label="Data de nascimento" value={formatDate(paciente.dateBirth)} />
             <InfoRow label="Parentesco" value={paciente.kinship} />
+            <InfoRow label="Início (contrato)" value={formatDate(paciente.contractStartDate)} />
           </div>
 
           <div>
