@@ -121,6 +121,9 @@ function Home() {
         )}
 
         {(scope === "ADMIN" || scope === "SECRETARY") && (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* financeiro é exclusivo do ADMIN — o backend devolve null pros demais */}
+        {scope === "ADMIN" && (
           <FinanceiroResumoCard
             data={dashboard?.financeiro}
             loading={loading}
