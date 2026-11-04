@@ -64,7 +64,8 @@ function Home() {
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {(scope === "ADMIN" || scope === "SECRETARY") && (
+        {/* financeiro é exclusivo do ADMIN — o backend devolve null pros demais */}
+        {scope === "ADMIN" && (
           <FinanceiroResumoCard
             data={dashboard?.financeiro}
             loading={loading}

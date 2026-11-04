@@ -273,8 +273,8 @@ function Dashboard() {
                         </div>
                     )}
 
-                    {/* MENU FINANCEIRO */}
-                    {(user?.scope === "SECRETARY" || user?.scope === "ADMIN") && (
+                    {/* MENU FINANCEIRO — exclusivo do ADMIN */}
+                    {user?.scope === "ADMIN" && (
                         <div>
                             <button
                                 className={`w-full flex items-center justify-between p-2 rounded-lg text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors ${
