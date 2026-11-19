@@ -1,7 +1,7 @@
 // src/pages/contracts/templates/ContractTemplateEditor.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, ArrowLeft, Info, Braces } from "lucide-react";
 import ContractTemplateService from "../../../services/ContractTemplateService";
 import Alert from "../../../components/alert/Alert";
 
@@ -65,6 +65,22 @@ export default function ContractTemplateEditor() {
   // Aba ativa
   const [tab, setTab] = useState("clausulas");
 
+  // Menu de inserção de variáveis (mascara o {{}} — ver insertVariable)
+  const [openVarMenuId, setOpenVarMenuId] = useState(null);
+  const varMenuRef = useRef(null);
+  const textareaRefs = useRef({});
+
+  useEffect(() => {
+    if (openVarMenuId == null) return;
+    const handleClickOutside = (e) => {
+      if (varMenuRef.current && !varMenuRef.current.contains(e.target)) {
+        setOpenVarMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openVarMenuId]);
+
   // ── Carregamento ao editar ─────────────────────────────────────────
 
   useEffect(() => {
@@ -108,6 +124,27 @@ export default function ContractTemplateEditor() {
     if (swap < 0 || swap >= next.length) return;
     [next[idx], next[swap]] = [next[swap], next[idx]];
     setClauses(next.map((c, i) => ({ ...c, clauseOrder: i + 1 })));
+  };
+
+  // Insere {{nome}} na posição do cursor (ou no final, se o textarea não estiver
+  // focado) — mascara a sintaxe de variável para quem está preenchendo a cláusula.
+  const insertVariable = (idx, varName) => {
+    const clause = clauses[idx];
+    const el = textareaRefs.current[clause.id];
+    const token = `{{${varName}}}`;
+    const start = el ? el.selectionStart : clause.content.length;
+    const end = el ? el.selectionEnd : clause.content.length;
+    const newContent = clause.content.slice(0, start) + token + clause.content.slice(end);
+    updateClause(idx, "content", newContent);
+    setOpenVarMenuId(null);
+
+    const cursorPos = start + token.length;
+    setTimeout(() => {
+      if (el) {
+        el.focus();
+        el.setSelectionRange(cursorPos, cursorPos);
+      }
+    }, 0);
   };
 
   // ── Variáveis manuais ──────────────────────────────────────────────
@@ -199,6 +236,14 @@ export default function ContractTemplateEditor() {
     { key: "aceite",      label: `Campos de Aceite (${acceptFields.length})` },
   ];
 
+  // Lista combinada (automáticas + manuais) usada pelo menu de inserção nas cláusulas
+  const allVariableOptions = [
+    ...AUTO_VARS.map(v => ({ name: v.name, desc: v.desc, auto: true })),
+    ...variables
+      .filter(v => v.variableName?.trim())
+      .map(v => ({ name: v.variableName, desc: v.description, auto: false })),
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
@@ -223,51 +268,70 @@ export default function ContractTemplateEditor() {
 
         {/* Card principal */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-4">
-          <h2 className="font-semibold text-gray-800 mb-4">Informações Gerais</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Nome */}
-            <div className="sm:col-span-2">
-              <label className="label-sm">Nome do modelo *</label>
-              <input value={name} onChange={e => setName(e.target.value)}
-                placeholder="Ex: Prestação de Serviços 2025"
-                className="input-base" />
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Info size={17} className="text-primary" />
             </div>
-
-            {/* Descrição */}
-            <div className="sm:col-span-2">
-              <label className="label-sm">Descrição</label>
-              <input value={description} onChange={e => setDescription(e.target.value)}
-                placeholder="Descrição resumida..."
-                className="input-base" />
-            </div>
-
-            {/* Tipo */}
             <div>
-              <label className="label-sm">Tipo</label>
-              <Select value={type} onChange={setType} options={CONTRACT_TYPES} />
+              <h2 className="font-semibold text-gray-800">Informações Gerais</h2>
+              <p className="text-xs text-gray-500">Dados básicos e regras de assinatura do modelo</p>
             </div>
+          </div>
 
-            {/* Modo assinatura */}
+          <div className="space-y-5">
+            {/* Identificação */}
             <div>
-              <label className="label-sm">Ordem de Assinatura</label>
-              <Select value={signingMode} onChange={setSigningMode} options={SIGNING_MODES} />
-            </div>
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">
+                Identificação
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="label-sm">Nome do modelo *</label>
+                  <input value={name} onChange={e => setName(e.target.value)}
+                    placeholder="Ex: Prestação de Serviços 2025"
+                    className="input-base" />
+                </div>
 
-            {/* Testemunhas */}
-            <div>
-              <label className="label-sm">Configuração de Testemunhas</label>
-              <Select value={witnessConfig} onChange={setWitnessConfig} options={WITNESS_CONFIGS} />
-            </div>
+                <div className="sm:col-span-2">
+                  <label className="label-sm">Descrição</label>
+                  <input value={description} onChange={e => setDescription(e.target.value)}
+                    placeholder="Descrição resumida..."
+                    className="input-base" />
+                </div>
 
-            {/* Quantidade testemunhas */}
-            {witnessConfig !== "NAO_UTILIZA" && (
-              <div>
-                <label className="label-sm">Quantidade de Testemunhas</label>
-                <input type="number" min={0} max={5}
-                  value={witnessCount} onChange={e => setWitnessCount(Number(e.target.value))}
-                  className="input-base" />
+                <div>
+                  <label className="label-sm">Tipo</label>
+                  <Select value={type} onChange={setType} options={CONTRACT_TYPES} />
+                </div>
               </div>
-            )}
+            </div>
+
+            {/* Assinatura */}
+            <div className="pt-5 border-t border-gray-100">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">
+                Assinatura
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label-sm">Ordem de Assinatura</label>
+                  <Select value={signingMode} onChange={setSigningMode} options={SIGNING_MODES} />
+                </div>
+
+                <div>
+                  <label className="label-sm">Configuração de Testemunhas</label>
+                  <Select value={witnessConfig} onChange={setWitnessConfig} options={WITNESS_CONFIGS} />
+                </div>
+
+                {witnessConfig !== "NAO_UTILIZA" && (
+                  <div>
+                    <label className="label-sm">Quantidade de Testemunhas</label>
+                    <input type="number" min={0} max={5}
+                      value={witnessCount} onChange={e => setWitnessCount(Number(e.target.value))}
+                      className="input-base" />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -292,13 +356,13 @@ export default function ContractTemplateEditor() {
             {tab === "clausulas" && (
               <div className="space-y-3">
                 <p className="text-xs text-gray-500 mb-3">
-                  Use <code className="bg-gray-100 px-1 rounded">{"{{variavel_nome}}"}</code> para
-                  inserir variáveis dinâmicas no conteúdo das cláusulas.
+                  Clique em <strong>Inserir variável</strong> dentro de cada cláusula para adicionar
+                  campos dinâmicos sem precisar digitar <code className="bg-gray-100 px-1 rounded">{"{{ }}"}</code> manualmente.
                 </p>
                 {clauses.map((clause, idx) => (
                   <div key={clause.id}
-                    className="border border-gray-200 rounded-xl overflow-hidden">
-                    <div className="flex items-center gap-2 bg-gray-50 px-4 py-2">
+                    className="border border-gray-200 rounded-xl">
+                    <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-t-xl">
                       <span className="text-xs font-bold text-gray-400 w-5">
                         {clause.clauseOrder}
                       </span>
@@ -324,10 +388,60 @@ export default function ContractTemplateEditor() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Menu de inserção de variáveis — mascara a sintaxe {{}} */}
+                    <div className="relative border-t border-gray-100 px-3 py-1.5 bg-gray-50/50">
+                      <button
+                        type="button"
+                        onClick={() => setOpenVarMenuId(openVarMenuId === clause.id ? null : clause.id)}
+                        className="flex items-center gap-1.5 text-xs font-medium text-primary
+                          hover:text-primary/80 px-2 py-1 rounded-md hover:bg-primary/5 transition"
+                      >
+                        <Braces size={13} /> Inserir variável
+                        <ChevronDown size={12}
+                          className={`transition-transform ${openVarMenuId === clause.id ? "rotate-180" : ""}`} />
+                      </button>
+
+                      {openVarMenuId === clause.id && (
+                        <div ref={varMenuRef}
+                          className="absolute left-2 top-full mt-1 z-20 w-72 max-h-64 overflow-y-auto
+                            bg-white border border-gray-200 rounded-xl shadow-lg py-1.5">
+                          {allVariableOptions.length === 0 ? (
+                            <p className="px-3 py-2 text-xs text-gray-400">
+                              Nenhuma variável disponível ainda.
+                            </p>
+                          ) : (
+                            allVariableOptions.map(v => (
+                              <button key={v.name} type="button"
+                                onClick={() => insertVariable(idx, v.name)}
+                                className="w-full flex items-center justify-between gap-3 px-3 py-2
+                                  text-left hover:bg-primary/5 transition">
+                                <span>
+                                  <code className="text-xs font-mono text-primary block">
+                                    {`{{${v.name}}}`}
+                                  </code>
+                                  {v.desc && (
+                                    <span className="text-[11px] text-gray-400">{v.desc}</span>
+                                  )}
+                                </span>
+                                {v.auto && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full
+                                    bg-gray-100 text-gray-400 shrink-0">
+                                    auto
+                                  </span>
+                                )}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     <textarea
+                      ref={el => { textareaRefs.current[clause.id] = el; }}
                       value={clause.content}
                       onChange={e => updateClause(idx, "content", e.target.value)}
-                      placeholder="Conteúdo da cláusula. Use {{variavel}} para campos dinâmicos."
+                      placeholder="Conteúdo da cláusula..."
                       rows={4}
                       className="w-full px-4 py-3 text-sm text-gray-700 focus:outline-none resize-none"
                     />

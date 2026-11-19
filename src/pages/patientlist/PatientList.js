@@ -26,7 +26,10 @@ function PatientList() {
   const fetchPatients = async () => {
     try {
       const data = await PatientsService.listar();
-      setPatients(data);
+      const ordenados = [...data].sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base" })
+      );
+      setPatients(ordenados);
     } catch (error) {
       console.error("Erro ao carregar pacientes:", error);
     } finally {

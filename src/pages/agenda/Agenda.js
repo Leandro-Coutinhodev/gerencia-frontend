@@ -204,12 +204,16 @@ export default function Agenda() {
               : "Seus agendamentos e a frequência dos seus atendimentos."}
           </p>
         </div>
-        <button onClick={() => openNewAppointment(null)}
-          className="flex items-center gap-2 bg-primary text-white px-5 py-2.5
-            rounded-full text-sm font-semibold hover:bg-primary/90 transition
-            shadow-sm whitespace-nowrap">
-          <Plus size={16} /> Novo Agendamento
-        </button>
+        {/* Criar agendamento é exclusivo do profissional autenticado (a ficha de origem
+            precisa pertencer a ele — RB01/RB06); admin só visualiza/cancela */}
+        {!isAdmin && (
+          <button onClick={() => openNewAppointment(null)}
+            className="flex items-center gap-2 bg-primary text-white px-5 py-2.5
+              rounded-full text-sm font-semibold hover:bg-primary/90 transition
+              shadow-sm whitespace-nowrap">
+            <Plus size={16} /> Novo Agendamento
+          </button>
+        )}
       </div>
 
       {pendingFicha && (
@@ -340,9 +344,9 @@ export default function Agenda() {
 
               return (
                 <div key={idx}
-                  onClick={() => openNewAppointment(day)}
-                  className="border-b border-r border-gray-50 min-h-[92px] p-1.5
-                    hover:bg-primary/5 transition-colors cursor-pointer flex flex-col gap-1">
+                  onClick={() => !isAdmin && openNewAppointment(day)}
+                  className={`border-b border-r border-gray-50 min-h-[92px] p-1.5
+                    flex flex-col gap-1 ${isAdmin ? "" : "hover:bg-primary/5 transition-colors cursor-pointer"}`}>
                   <span className={`text-xs font-semibold w-5 h-5 flex items-center
                     justify-center rounded-full flex-shrink-0
                     ${isToday(day) ? "bg-primary text-white" : "text-gray-500"}`}>
