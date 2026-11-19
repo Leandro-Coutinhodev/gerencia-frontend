@@ -146,10 +146,45 @@ export default function ContractSigningPage() {
             Contrato
           </h2>
           <div
-            className="prose prose-sm max-w-none text-gray-700 leading-relaxed
-              max-h-96 overflow-y-auto pr-2"
+            className="contract-body max-h-96 overflow-y-auto pr-2"
             dangerouslySetInnerHTML={{ __html: view?.renderedContent || "" }}
           />
+          {/* O conteúdo acima vem como HTML puro do backend (sem classes Tailwind) —
+              estiliza-se aqui para dar destaque ao título de cada cláusula e aos
+              valores de variável substituídos (.contract-var). */}
+          <style>{`
+            .contract-body { font-size: 0.875rem; color: #374151; }
+            .contract-body .contract-clause {
+              padding-top: 1.25rem; margin-top: 1.25rem;
+            }
+            .contract-body .contract-clause:first-child {
+              padding-top: 0; margin-top: 0;
+            }
+            .contract-body .contract-clause + .contract-clause {
+              border-top: 1px solid #F1F2F4;
+            }
+            .contract-body h3 {
+              display: flex; align-items: center; gap: 0.6rem;
+              margin: 0 0 0.6rem;
+            }
+            .contract-body .clause-num {
+              display: flex; align-items: center; justify-content: center;
+              width: 1.5rem; height: 1.5rem; flex-shrink: 0;
+              border-radius: 999px; background: rgba(61, 117, 196, 0.1);
+              color: #3D75C4; font-size: 0.7rem; font-weight: 700;
+            }
+            .contract-body .clause-title {
+              font-size: 0.95rem; font-weight: 700; color: #111827;
+            }
+            .contract-body p {
+              margin: 0; line-height: 1.7; white-space: pre-wrap;
+            }
+            .contract-body .contract-var {
+              font-weight: 600; color: #3D75C4;
+              background: rgba(61, 117, 196, 0.08);
+              padding: 0.05rem 0.35rem; border-radius: 4px;
+            }
+          `}</style>
         </div>
 
         {/* Campos de aceite */}

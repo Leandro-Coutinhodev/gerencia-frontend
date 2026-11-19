@@ -5,6 +5,18 @@ import { ClipboardList, Copy as CopyIcon, ExternalLink } from "lucide-react";
 import AnamnesisService from "../../../services/AnamnesisService";
 import PatientsService from "../../../services/PatientsService";
 
+// O backend devolve o status da anamnese como um único caractere (Anamnesis.status,
+// entidade) — "E" (Encaminhada), "P" (Em análise) ou "A" (Respondida/Analisada).
+const ANAMNESE_STATUS_CONFIG = {
+  E: { label: "Encaminhada", badge: "bg-blue-100 text-blue-700" },
+  P: { label: "Em análise", badge: "bg-amber-100 text-amber-700" },
+  A: { label: "Respondida", badge: "bg-green-100 text-green-700" },
+};
+
+function anamneseStatusInfo(status) {
+  return ANAMNESE_STATUS_CONFIG[status] || { label: "Desconhecido", badge: "bg-gray-100 text-gray-500" };
+}
+
 // --- Helper Component for the right-hand panel ---
 // Este componente renderiza a barra lateral de detalhes da anamnese quando um item é selecionado.
 function AnamnesisDetailPanel({ patient }) {
@@ -236,6 +248,8 @@ export default function AnamnesisHistory() {
                   <div className="relative ml-5 pl-6 border-l-4 border-grey-400">
                     {group.items.map((a) => {
                       const dateForDisplay = getDateFromAnamnese(a);
+                      const statusInfo = anamneseStatusInfo(a.status);
+                      const respondida = a.status === "A";
                       const link =
                         a.formLink ||
                         a.link ||
@@ -255,19 +269,14 @@ export default function AnamnesisHistory() {
                             <div className="flex justify-between items-start mb-3">
                               <h3 className="font-semibold text-gray-800">Anamnese</h3>
                               <span
-                                className={`px-3 py-1 text-xs rounded-full font-medium ${a.status === "Encaminhada"
-                                  ? "bg-blue-100 text-blue-700"
-                                  : a.status === "Respondido"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-gray-100 text-gray-500"
-                                  }`}
+                                className={`px-3 py-1 text-xs rounded-full font-medium ${statusInfo.badge}`}
                               >
-                                {a.status || "—"}
+                                {statusInfo.label}
                               </span>
                             </div>
 
                             <p className="text-sm text-gray-500">
-                              {a.status === "Respondido"
+                              {respondida
                                 ? "Data de resposta:"
                                 : "Data de envio:"}{" "}
                               <span className="font-medium text-gray-700">
@@ -278,7 +287,6 @@ export default function AnamnesisHistory() {
                             </p>
 
                             {/* Link */}
-                            {/* Link */}
                             <div className="mt-4">
                               <label className="block text-sm text-gray-500 mb-1">
                                 Link do formulário de anamnese
@@ -288,8 +296,8 @@ export default function AnamnesisHistory() {
                                   <input
                                     type="text"
                                     readOnly
-                                    disabled={a.status === "Respondido"}
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm ${a.status === "Respondido"
+                                    disabled={respondida}
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm ${respondida
                                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                         : "bg-gray-50 text-gray-700"
                                       }`}
@@ -298,14 +306,14 @@ export default function AnamnesisHistory() {
                                 </div>
                                 <button
                                   onClick={() => copyToClipboard(link, a.id)}
-                                  disabled={a.status === "Respondido"}
-                                  className={`flex items-center gap-1 text-sm ${a.status === "Respondido"
+                                  disabled={respondida}
+                                  className={`flex items-center gap-1 text-sm ${respondida
                                       ? "text-gray-400 cursor-not-allowed"
                                       : "text-primary hover:text-blue-700"
                                     }`}
                                 >
                                   <CopyIcon size={16} />
-                                  {a.status === "Respondido"
+                                  {respondida
                                     ? "Indisponível"
                                     : copiedId === a.id
                                       ? "Copiado!"
